@@ -110,6 +110,57 @@ void print_packet(uchar *h80211, int buffer_size)
     printf("\n");
 }
 
+
+//Returns pointer to the desired MAC Adresses inside a packet
+//Type: s => Station
+//      a => AP
+//      b => BSSID
+uchar *get_macs_from_packet(char type, uchar *packet)
+{
+    uchar *bssid, *station, *access_point;
+
+    //Ad-Hoc Case!
+    bssid = packet + 16;
+    station = packet + 10;
+    access_point = packet + 4;
+
+    // ToDS packet
+    if ((packet[1] & '\x01') && (!(packet[1] & '\x02')))
+    {
+        bssid = packet + 4;
+        station = packet + 10;
+        access_point = packet + 16;
+    }
+
+    // FromDS packet
+    if ((!(packet[1] & '\x01')) && (packet[1] & '\x02'))
+    {
+        station = packet + 4;
+        bssid = packet + 10;
+        access_point = packet + 16;
+    }
+
+    // WDS packet
+    if ((packet[1] & '\x01') && (packet[1] & '\x02'))
+    {
+        station = packet + 4;
+        bssid = packet + 10;
+        access_point = packet + 4;
+    }
+
+    switch(type)
+    {
+    case 's':
+        return station;
+    case 'a':
+        return access_point;
+    case 'b':
+        return bssid;
+    }
+
+    return NULL;
+}
+
 void print_help()
 {
     printf("dw <interface>");
@@ -142,9 +193,14 @@ int main(int argc, const char *argv[])
 
     uchar packet_data[MAX_PACKET_LENGTH];
 
-    while (1) {
+    while (1)
+    {
         read_packet(packet_data, MAX_PACKET_LENGTH);
-        print_packet(packet_data, MAX_PACKET_LENGTH);
+        //print_packet(packet_data, MAX_PACKET_LENGTH);
+
+        printf(get_macs_from_packet('a', packet_data));
+        printf(get_macs_from_packet('b', packet_data));
+        printf(get_macs_from_packet('s', packet_data));
     }
 
     return 0;
