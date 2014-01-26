@@ -20,7 +20,7 @@ FILE *list_file_fp;                     // File containing MACs list
 char *list_file_name = NULL;            // File Name for file containing MACs list
 long list_file_pos = 0;                 // List file position
 int list_file_eof = 0;                  // EOF flag
-int use_list = 0;                       // Flag for using list [0 -> nolist| 1->blacklist| 2->whitelist]
+int use_list = 0;                       // Flag for using list [0->nolist| 1->whitelist| 2->blacklist]
 
 uchar mac_list[MAX_MAC_LIST_ENTRIES][ETH_MAC_LENGTH];           // Whitelist/Blacklist
 int mac_list_length = 0;                                        // Actual mac_list length
@@ -419,11 +419,14 @@ int main(int argc, const char *argv[])
     while (1)
     {
         read_packet(packet_data, MAX_PACKET_LENGTH);
-        //print_packet(packet_data, MAX_PACKET_LENGTH);
-
-        printf(get_macs_from_packet('a', packet_data));
-        printf(get_macs_from_packet('b', packet_data));
-        printf(get_macs_from_packet('s', packet_data));
+        if(!memcmp(bssid, get_macs_from_packet('b', packet_data), MAX_PACKET_LENGTH)
+            || !memcmp(bssid, get_macs_from_packet('a', packet_data), MAX_PACKET_LENGTH))
+        {
+            print_packet(packet_data, MAX_PACKET_LENGTH);
+        }
+        //printf(get_macs_from_packet('a', packet_data));
+        //printf(get_macs_from_packet('b', packet_data));
+        //printf(get_macs_from_packet('s', packet_data));
     }
 
     return 0;
