@@ -18,7 +18,7 @@ int current_channel = 0;
 
 char mac[257];                          // Space for the MACs read from file
 FILE *list_file_fp;                     // File containing MACs list
-const char *list_file_name = NULL;      // File Name for file containing MACs list
+const char *list_filename = NULL;      // File Name for file containing MACs list
 long list_file_pos = 0;                 // List file position
 int list_file_eof = 0;                  // EOF flag
 int use_list = 0;                       // Flag for using list [0->nolist| 1->whitelist| 2->blacklist]
@@ -269,7 +269,7 @@ char *read_mac_from_file()
     int bytes_read = 0;
 
     /* open file for input */
-    if ((list_file_fp = fopen(list_file_name, "r")) == NULL)
+    if ((list_file_fp = fopen(list_filename, "r")) == NULL)
     {
         printf("Cannot open file \n");
         exit(1);
@@ -308,7 +308,7 @@ char *read_mac_from_file()
 
 void load_list_file(const char *filename)
 {
-    list_file_name = filename;
+    list_filename = filename;
     uchar *parsed_mac;
 
     mac_list_length = 0;
