@@ -164,7 +164,7 @@ uchar *get_macs_from_packet(char type, uchar *packet)
         access_point = packet + 4;
     }
 
-    switch(type)
+    switch (type)
     {
     case 's':
         return station;
@@ -333,7 +333,9 @@ void load_list_file(const char *filename)
 
 int is_whitelisted(uchar *mac)
 {
-    for (int t=0; t < mac_list_length; t++)
+    int t;
+
+    for (t = 0; t < mac_list_length; t++)
     {
         if (!memcmp(mac_list[t], mac, MAC_LENGTH))
             return 1;
@@ -376,19 +378,19 @@ int main(int argc, const char *argv[])
     bssid = (uchar *) parse_mac(argv[2]);
     channel = atoi(argv[3]);
 
-    for(t=3; t < argc; t++)
+    for (t=3; t < argc; t++)
     {
-        if(!strcmp(argv[t], "-w") && argc >= t+1)
+        if (!strcmp(argv[t], "-w") && argc >= t+1)
         {
             use_list = 1;
         }
 
-        if(!strcmp(argv[t], "-b") && argc >= t+1)
+        if (!strcmp(argv[t], "-b") && argc >= t+1)
         {
             use_list = 2;
         }
 
-        if(use_list != 0)
+        if (use_list != 0)
         {
             list_file = argv[t+1];
             load_list_file(list_file);
@@ -411,8 +413,8 @@ int main(int argc, const char *argv[])
     while (1)
     {
         read_packet(packet_data, MAX_PACKET_LENGTH);
-        if(!memcmp(bssid, get_macs_from_packet('b', packet_data), MAC_LENGTH)
-            || !memcmp(bssid, get_macs_from_packet('a', packet_data), MAC_LENGTH))
+        if (!memcmp(bssid, get_macs_from_packet('b', packet_data), MAC_LENGTH) ||
+            !memcmp(bssid, get_macs_from_packet('a', packet_data), MAC_LENGTH))
         {
             print_packet(packet_data, MAX_PACKET_LENGTH);
         }
