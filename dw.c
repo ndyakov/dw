@@ -18,7 +18,7 @@ int current_channel = 0;
 
 char mac[257];                          // Space for the MACs read from file
 FILE *list_file_fp;                     // File containing MACs list
-char *list_file_name = NULL;            // File Name for file containing MACs list
+const char *list_file_name = NULL;      // File Name for file containing MACs list
 long list_file_pos = 0;                 // List file position
 int list_file_eof = 0;                  // EOF flag
 int use_list = 0;                       // Flag for using list [0->nolist| 1->whitelist| 2->blacklist]
@@ -306,7 +306,7 @@ char *read_mac_from_file()
     return (char*) &mac;
 }
 
-void load_list_file(char *filename)
+void load_list_file(const char *filename)
 {
 
     list_file_name = filename;
@@ -358,9 +358,9 @@ void print_help()
 
 int main(int argc, const char *argv[])
 {
-    uchar bssid;
+    uchar *bssid;
     int channel, t;
-    char *list_file = NULL;
+    const char *list_file = NULL;
     //options
 
     if (geteuid() != 0)
