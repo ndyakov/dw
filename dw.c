@@ -228,11 +228,11 @@ uchar *parse_mac(const char *input)
     if (input[2] == ':')
     {
         memcpy(tmp, input, 2);
-        memcpy(tmp+2, input+3, 2);
-        memcpy(tmp+4, input+6, 2);
-        memcpy(tmp+6, input+9, 2);
-        memcpy(tmp+8, input+12, 2);
-        memcpy(tmp+10, input+15, 2);
+        memcpy(tmp + 2, input + 3, 2);
+        memcpy(tmp + 4, input + 6, 2);
+        memcpy(tmp + 6, input + 9, 2);
+        memcpy(tmp + 8, input + 12, 2);
+        memcpy(tmp + 10, input + 15, 2);
     }
     else
     {
