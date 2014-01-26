@@ -308,7 +308,6 @@ char *read_mac_from_file()
 
 void load_list_file(const char *filename)
 {
-
     list_file_name = filename;
     uchar *parsed_mac;
 
@@ -334,8 +333,7 @@ void load_list_file(const char *filename)
 
 int is_whitelisted(uchar *mac)
 {
-    int t;
-    for (t=0; t<mac_list_length; t++)
+    for (int t=0; t < mac_list_length; t++)
     {
         if (!memcmp(mac_list[t], mac, MAC_LENGTH))
             return 1;
