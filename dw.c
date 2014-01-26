@@ -7,7 +7,7 @@
 #define uchar unsigned char
 
 #define MAX_PACKET_LENGTH 4096
-#define ETH_MAC_LENGTH 6
+#define MAC_LENGTH 6
 #define MAX_MAC_LIST_ENTRIES 256
 
 /* XXX: globals... why? Why, globals... why!? */
@@ -22,9 +22,9 @@ long list_file_pos = 0;                 // List file position
 int list_file_eof = 0;                  // EOF flag
 int use_list = 0;                       // Flag for using list [0->nolist| 1->whitelist| 2->blacklist]
 
-uchar mac_list[MAX_MAC_LIST_ENTRIES][ETH_MAC_LENGTH];           // Whitelist/Blacklist
+uchar mac_list[MAX_MAC_LIST_ENTRIES][MAC_LENGTH];           // Whitelist/Blacklist
 int mac_list_length = 0;                                        // Actual mac_list length
-uchar mac_parsed[ETH_MAC_LENGTH] = "\x00\x00\x00\x00\x00\x00"; // Space for parsed MACs
+uchar mac_parsed[MAC_LENGTH] = "\x00\x00\x00\x00\x00\x00"; // Space for parsed MACs
 
 struct packet
 {
@@ -219,7 +219,7 @@ char hex_to_char(char byte1, char byte2)
 }
 
 // Parsing input MAC adresses like 00:00:11:22:aa:BB or 00001122aAbB
-uchar *parse_mac(char *input)
+uchar *parse_mac(const char *input)
 {
     uchar tmp[12] = "000000000000";
     int t;
@@ -238,7 +238,7 @@ uchar *parse_mac(char *input)
         memcpy(tmp, input, 12);
     }
 
-    for (t=0; t<ETH_MAC_LENGTH; t++)
+    for (t=0; t < MAC_LENGTH; t++)
     {
         mac_parsed[t] = hex_to_char(tmp[2*t], tmp[2*t+1]);
     }
@@ -316,7 +316,7 @@ void load_list_file(char *filename)
     while (!list_file_eof)
     {
         parsed_mac = parse_mac(read_line_from_file());
-        memcpy(mac_list[mac_list_length], parsed_mac, ETH_MAC_LENGTH);
+        memcpy(mac_list[mac_list_length], parsed_mac, MAC_LENGTH);
 
         mac_list_length++;
         if ((unsigned int) mac_list_length >= sizeof (mac_list) / sizeof (mac_list[0]))
@@ -336,7 +336,7 @@ int is_whitelisted(uchar *mac)
     int t;
     for (t=0; t<mac_list_length; t++)
     {
-        if (!memcmp(mac_list[t], mac, ETH_MAC_LENGTH))
+        if (!memcmp(mac_list[t], mac, MAC_LENGTH))
             return 1;
     }
 
@@ -412,8 +412,8 @@ int main(int argc, const char *argv[])
     while (1)
     {
         read_packet(packet_data, MAX_PACKET_LENGTH);
-        if(!memcmp(bssid, get_macs_from_packet('b', packet_data), ETH_MAC_LENGTH)
-            || !memcmp(bssid, get_macs_from_packet('a', packet_data), ETH_MAC_LENGTH))
+        if(!memcmp(bssid, get_macs_from_packet('b', packet_data), MAC_LENGTH)
+            || !memcmp(bssid, get_macs_from_packet('a', packet_data), MAC_LENGTH))
         {
             print_packet(packet_data, MAX_PACKET_LENGTH);
         }
