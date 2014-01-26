@@ -20,7 +20,6 @@ int use_list = 0;                       // Flag for using list [0->nolist| 1->wh
 
 uchar mac_list[MAX_MAC_LIST_ENTRIES][MAC_LENGTH];           // Whitelist/Blacklist
 int mac_list_length = 0;                                    // Actual mac_list length
-uchar mac_parsed[MAC_LENGTH] = "\x00\x00\x00\x00\x00\x00";  // Space for parsed MACs
 
 struct packet
 {
@@ -48,6 +47,16 @@ int read_packet(uchar *buffer, size_t buffer_size)
     }
 
     return return_code;
+}
+
+void print_mac(const uchar* mac) {
+    int i;
+    for (i = 0; i < MAC_LENGTH; i++)
+    {
+        if (i > 0) printf(":");
+        printf("%02X", mac[i]);
+    }
+    printf("\n");
 }
 
 /* FIXME: should be refactored */
@@ -218,6 +227,7 @@ char hex_to_char(char byte1, char byte2)
 uchar *parse_mac(const uchar *input)
 {
     uchar tmp[12] = "000000000000";
+    uchar *mac_parsed = malloc(MAC_LENGTH);
     int t;
 
     if (input[2] == ':')
@@ -255,12 +265,12 @@ int get_channel()
 
 // Read mac from file
 // New line removed
-uchar *read_mac_from_file(FILE *file, int *eof)
+uchar *read_mac_from_file(FILE *file)
 {
     int max_length = 255;
     int length = 32;
     char *line = NULL;
-    uchar *mac = NULL;
+    char *mac = NULL;
     size_t allocated = 0;
     int line_length = 0;
 
@@ -268,18 +278,23 @@ uchar *read_mac_from_file(FILE *file, int *eof)
 
     if (line_length == -1)
     {
-        *eof = 1;
         return NULL;
     }
 
     if (line_length > max_length)
     {
+        mac = malloc(max_length + 1);
+
         memcpy(mac, line, max_length);
+
         mac[max_length + 1] = '\x00';
+
         length = strlen((const char*) mac);
     }
     else
     {
+        mac = malloc(length);
+
         memcpy(mac, line, length);
     }
 
@@ -287,15 +302,14 @@ uchar *read_mac_from_file(FILE *file, int *eof)
 
     mac[length - 1] = '\x00';
 
-    return mac;
+    return (uchar *) mac;
 }
 
 void load_list_file(const char *filename)
 {
     FILE *file;                     // File containing MACs list
-    int file_eof = 0;               // EOF flag
     uchar *mac;
-
+    uchar *raw_mac;
     mac_list_length = 0;
 
     /* open file for input */
@@ -305,14 +319,15 @@ void load_list_file(const char *filename)
         exit(1);
     }
 
-    while (!file_eof)
+    while (raw_mac = read_mac_from_file(file))
     {
-        mac = parse_mac(read_mac_from_file(file, &file_eof));
+        mac = parse_mac(raw_mac);
 
         memcpy(mac_list[mac_list_length], mac, MAC_LENGTH);
 
         mac_list_length++;
 
+        free(raw_mac);
         free(mac);
 
         if ((unsigned int) mac_list_length >= sizeof (mac_list) / sizeof (mac_list[0]))
@@ -374,7 +389,7 @@ int main(int argc, const char *argv[])
     channel = atoi(argv[3]);
     set_channel(channel);
 
-    for (t=3; t < argc; t++)
+    for (t = 3; t < argc; t++)
     {
         if (!strcmp(argv[t], "-w") && argc >= t+1)
         {
@@ -416,6 +431,8 @@ int main(int argc, const char *argv[])
         //printf(get_macs_from_packet('b', packet_data));
         //printf(get_macs_from_packet('s', packet_data));
     }
+
+    free(bssid);
 
     return 0;
 }
