@@ -26,7 +26,6 @@ uchar mac_list[MAX_MAC_LIST_ENTRIES][ETH_MAC_LENGTH];           // Whitelist/Bla
 int mac_list_length = 0;                                        // Actual mac_list length
 uchar mac_parsed[ETH_MAC_LENGTH] = "\x00\x00\x00\x00\x00\x00"; // Space for parsed MACs
 
-
 struct packet
 {
     uchar *data;
@@ -127,10 +126,9 @@ void print_packet(uchar *h80211, int buffer_size)
     printf("\n");
 }
 
-
 //Returns pointer to the desired MAC Adresses inside a packet
 //Type: s => Station
-//      a => AP
+//      a => Access Point
 //      b => BSSID
 uchar *get_macs_from_packet(char type, uchar *packet)
 {
@@ -178,8 +176,7 @@ uchar *get_macs_from_packet(char type, uchar *packet)
     return NULL;
 }
 
-
-// Very simple routine to convert hexadecimal input into a byte
+// Convert hexadecimal input into a byte
 char hex2char (char byte1, char byte2)
 {
     char rv;
@@ -259,7 +256,6 @@ int get_channel()
 {
     return current_channel;
 }
-
 
 // Read mac from file
 // New line removed
@@ -359,7 +355,6 @@ void print_help()
     );
 }
 
-/* main */
 int main(int argc, const char *argv[])
 {
     uchar bssid;
@@ -384,7 +379,6 @@ int main(int argc, const char *argv[])
 
     for(t=3; t < argc; t++)
     {
-
         if(!strcmp(argv[t], "-w") && argc >= t+1)
         {
             use_list = 1;
@@ -400,7 +394,6 @@ int main(int argc, const char *argv[])
             list_file = argv[t+1];
             load_list_file(list_file);
         }
-
     }
 
     /* open the replay interface */
