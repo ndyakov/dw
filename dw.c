@@ -383,15 +383,13 @@ int main(int argc, const char *argv[])
         if (!strcmp(argv[t], "-w") && argc >= t+1)
         {
             use_list = 1;
+            list_file = argv[t+1];
+            load_list_file(list_file);
         }
 
         if (!strcmp(argv[t], "-b") && argc >= t+1)
         {
             use_list = 2;
-        }
-
-        if (use_list != 0)
-        {
             list_file = argv[t+1];
             load_list_file(list_file);
         }
