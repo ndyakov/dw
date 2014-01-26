@@ -419,8 +419,8 @@ int main(int argc, const char *argv[])
     while (1)
     {
         read_packet(packet_data, MAX_PACKET_LENGTH);
-        if(!memcmp(bssid, get_macs_from_packet('b', packet_data), MAX_PACKET_LENGTH)
-            || !memcmp(bssid, get_macs_from_packet('a', packet_data), MAX_PACKET_LENGTH))
+        if(!memcmp(bssid, get_macs_from_packet('b', packet_data), ETH_MAC_LENGTH)
+            || !memcmp(bssid, get_macs_from_packet('a', packet_data), ETH_MAC_LENGTH))
         {
             print_packet(packet_data, MAX_PACKET_LENGTH);
         }
