@@ -347,16 +347,16 @@ int is_whitelisted(uchar *mac)
     return 0;
 }
 
-char help[] =   "dw <interface> <bssid> <channel> [option] \n"
-                "Options:\n"
-                " -w <filename> \n"
-                "   Whitelist...\n"
-                " -b <filename> \n"
-                "   Blacklist...\n";
-
 void print_help()
 {
-    printf(help);
+    printf(
+        "dw <interface> <bssid> <channel> [option] \n"
+        "Options:\n"
+        " -w <filename> \n"
+        "   Whitelist...\n"
+        " -b <filename> \n"
+        "   Blacklist...\n"
+    );
 }
 
 /* main */
