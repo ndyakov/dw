@@ -177,45 +177,45 @@ uchar *get_macs_from_packet(char type, uchar *packet)
 }
 
 // Convert hexadecimal input into a byte
-char hex2char (char byte1, char byte2)
+char hex_to_char(char byte1, char byte2)
 {
-    char rv;
+    char result;
 
-    if (byte1 == '0') { rv = 0; }
-    if (byte1 == '1') { rv = 16; }
-    if (byte1 == '2') { rv = 32; }
-    if (byte1 == '3') { rv = 48; }
-    if (byte1 == '4') { rv = 64; }
-    if (byte1 == '5') { rv = 80; }
-    if (byte1 == '6') { rv = 96; }
-    if (byte1 == '7') { rv = 112; }
-    if (byte1 == '8') { rv = 128; }
-    if (byte1 == '9') { rv = 144; }
-    if (byte1 == 'A' || byte1 == 'a') { rv = 160; }
-    if (byte1 == 'B' || byte1 == 'b') { rv = 176; }
-    if (byte1 == 'C' || byte1 == 'c') { rv = 192; }
-    if (byte1 == 'D' || byte1 == 'd') { rv = 208; }
-    if (byte1 == 'E' || byte1 == 'e') { rv = 224; }
-    if (byte1 == 'F' || byte1 == 'f') { rv = 240; }
+    if (byte1 == '0') { result = 0; }
+    if (byte1 == '1') { result = 16; }
+    if (byte1 == '2') { result = 32; }
+    if (byte1 == '3') { result = 48; }
+    if (byte1 == '4') { result = 64; }
+    if (byte1 == '5') { result = 80; }
+    if (byte1 == '6') { result = 96; }
+    if (byte1 == '7') { result = 112; }
+    if (byte1 == '8') { result = 128; }
+    if (byte1 == '9') { result = 144; }
+    if (byte1 == 'A' || byte1 == 'a') { result = 160; }
+    if (byte1 == 'B' || byte1 == 'b') { result = 176; }
+    if (byte1 == 'C' || byte1 == 'c') { result = 192; }
+    if (byte1 == 'D' || byte1 == 'd') { result = 208; }
+    if (byte1 == 'E' || byte1 == 'e') { result = 224; }
+    if (byte1 == 'F' || byte1 == 'f') { result = 240; }
 
-    if (byte2 == '0') { rv += 0; }
-    if (byte2 == '1') { rv += 1; }
-    if (byte2 == '2') { rv += 2; }
-    if (byte2 == '3') { rv += 3; }
-    if (byte2 == '4') { rv += 4; }
-    if (byte2 == '5') { rv += 5; }
-    if (byte2 == '6') { rv += 6; }
-    if (byte2 == '7') { rv += 7; }
-    if (byte2 == '8') { rv += 8; }
-    if (byte2 == '9') { rv += 9; }
-    if (byte2 == 'A' || byte2 == 'a') { rv += 10; }
-    if (byte2 == 'B' || byte2 == 'b') { rv += 11; }
-    if (byte2 == 'C' || byte2 == 'c') { rv += 12; }
-    if (byte2 == 'D' || byte2 == 'd') { rv += 13; }
-    if (byte2 == 'E' || byte2 == 'e') { rv += 14; }
-    if (byte2 == 'F' || byte2 == 'f') { rv += 15; }
+    if (byte2 == '0') { result += 0; }
+    if (byte2 == '1') { result += 1; }
+    if (byte2 == '2') { result += 2; }
+    if (byte2 == '3') { result += 3; }
+    if (byte2 == '4') { result += 4; }
+    if (byte2 == '5') { result += 5; }
+    if (byte2 == '6') { result += 6; }
+    if (byte2 == '7') { result += 7; }
+    if (byte2 == '8') { result += 8; }
+    if (byte2 == '9') { result += 9; }
+    if (byte2 == 'A' || byte2 == 'a') { result += 10; }
+    if (byte2 == 'B' || byte2 == 'b') { result += 11; }
+    if (byte2 == 'C' || byte2 == 'c') { result += 12; }
+    if (byte2 == 'D' || byte2 == 'd') { result += 13; }
+    if (byte2 == 'E' || byte2 == 'e') { result += 14; }
+    if (byte2 == 'F' || byte2 == 'f') { result += 15; }
 
-    return rv;
+    return result;
 }
 
 // Parsing input MAC adresses like 00:00:11:22:aa:BB or 00001122aAbB
@@ -240,7 +240,7 @@ uchar *parse_mac(char *input)
 
     for (t=0; t<ETH_MAC_LENGTH; t++)
     {
-        mac_parsed[t] = hex2char(tmp[2*t], tmp[2*t+1]);
+        mac_parsed[t] = hex_to_char(tmp[2*t], tmp[2*t+1]);
     }
 
     return mac_parsed;
