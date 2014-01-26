@@ -260,12 +260,12 @@ int get_channel()
 
 // Read mac from file
 // New line removed
-char *read_line_from_file()
+char *read_mac_from_file()
 {
     int max_length = 255;
     int length = 32;
     char *mac_string = NULL;
-    unsigned int size = 0;
+    size_t size = 0;
     int bytes_read = 0;
 
     /* open file for input */
@@ -316,7 +316,7 @@ void load_list_file(char *filename)
 
     while (!list_file_eof)
     {
-        parsed_mac = parse_mac(read_line_from_file());
+        parsed_mac = parse_mac(read_mac_from_file());
         memcpy(mac_list[mac_list_length], parsed_mac, MAC_LENGTH);
 
         mac_list_length++;
