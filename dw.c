@@ -319,7 +319,7 @@ void load_list_file(const char *filename)
         exit(1);
     }
 
-    while (raw_mac = read_mac_from_file(file))
+    while ((raw_mac = read_mac_from_file(file)))
     {
         mac = parse_mac(raw_mac);
 
@@ -356,8 +356,10 @@ int is_whitelisted(uchar *mac)
 void print_help()
 {
     printf(
-        "dw <interface> <bssid> <channel> [option] \n"
+        "dw <interface> <bssid> [option] \n"
         "Options:\n"
+        " -c <channel>  \n"
+        "   Channel...  \n"
         " -w <filename> \n"
         "   Whitelist...\n"
         " -b <filename> \n"
@@ -368,7 +370,7 @@ void print_help()
 int main(int argc, const char *argv[])
 {
     uchar *bssid;
-    int channel, t;
+    int channel = 0, t;
     const char *list_file = NULL;
     //options
 
@@ -378,7 +380,7 @@ int main(int argc, const char *argv[])
         return 1;
     }
 
-    if (argc < 4  || !memcmp(argv[1], "--help", 6) || !memcmp(argv[1], "-h", 2))
+    if (argc < 3  || !memcmp(argv[1], "--help", 6) || !memcmp(argv[1], "-h", 2))
     {
         print_help();
         return 1;
@@ -386,10 +388,7 @@ int main(int argc, const char *argv[])
 
     bssid = parse_mac((const uchar*) argv[2]);
 
-    channel = atoi(argv[3]);
-    set_channel(channel);
-
-    for (t = 3; t < argc; t++)
+    for (t = 2; t < argc; t++)
     {
         if (!strcmp(argv[t], "-w") && argc >= t+1)
         {
@@ -403,6 +402,20 @@ int main(int argc, const char *argv[])
             use_list = 2;
             list_file = argv[t+1];
             load_list_file(list_file);
+        }
+
+        if (!strcmp(argv[t], "-c") && argc >= t+1)
+        {
+            channel = atoi(argv[t+1]);
+            if (channel > 0 && channel < 14)
+            {
+                set_channel(channel);
+            }
+            else
+            {
+                print_help();
+                return 1;
+            }
         }
     }
 
