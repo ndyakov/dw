@@ -30,11 +30,11 @@ struct packet
 int read_packet(uchar *buffer, size_t buffer_size)
 {
     struct wif *wi = _wi_in; /* XXX */
-    int return_code;
+    int packet_length;
 
-    return_code = wi_read(wi, buffer, buffer_size, NULL);
+    packet_length = wi_read(wi, buffer, buffer_size, NULL);
 
-    if (return_code == -1)
+    if (packet_length == -1)
     {
         switch (errno)
         {
@@ -46,7 +46,7 @@ int read_packet(uchar *buffer, size_t buffer_size)
         return -1;
     }
 
-    return return_code;
+    return packet_length;
 }
 
 void print_mac(const uchar* mac) {
@@ -57,6 +57,53 @@ void print_mac(const uchar* mac) {
         printf("%02X", mac[i]);
     }
     printf("\n");
+}
+
+
+/* Sniffing Functions */
+uchar *get_target_deauth()
+{
+    uchar *sniffed_packet = malloc(sizeof(uchar[MAX_PACKET_LENGTH]));
+    // Sniffing for data frames to find targets
+    int packet_length = 0;
+    while (1)
+    {
+        packet_length = 0;
+        while (packet_length < 22)
+        {
+            packet_length = read_packet(sniffed_packet, MAX_PACKET_LENGTH);
+        }
+
+        if (!memcmp(sniffed_packet, "\x08", 1) || !memcmp(sniffed_packet, "\x88", 1))
+        {
+            return sniffed_packet;
+        }
+    }
+}
+
+struct packet create_deauth_frame(uchar *mac_source, uchar *mac_destination, uchar *mac_bssid, int disassoc)
+{
+    // Generating deauthenticationor disassociation frame
+
+    struct packet result_packet;
+    uchar packet_data[MAX_PACKET_LENGTH];
+    char *header =  "\xc0\x00\x3a\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+                    "\x00\x00\x00\x00\x00\x00\x70\x6a\x01\x00";
+
+    memcpy(packet_data, header, 25);
+    if (disassoc)
+    {
+        packet_data[0] = '\xa0';
+    }
+    // Set target Dest, Src, BSSID
+    memcpy(packet_data + 4, mac_destination, MAC_LENGTH);
+    memcpy(packet_data + 10, mac_source, MAC_LENGTH);
+    memcpy(packet_data + 16, mac_bssid, MAC_LENGTH);
+
+    result_packet.length = 26;
+    result_packet.data = packet_data;
+
+    return result_packet;
 }
 
 /* FIXME: should be refactored */
