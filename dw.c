@@ -73,8 +73,8 @@ uchar *get_target_deauth()
         {
             packet_length = read_packet(sniffed_packet, MAX_PACKET_LENGTH);
         }
-
-        if (!memcmp(sniffed_packet, "\x08", 1) || !memcmp(sniffed_packet, "\x88", 1))
+        // \x08 - Beacon
+        if (!memcmp(sniffed_packet, "\x08", 1))
         {
             return sniffed_packet;
         }
@@ -87,7 +87,9 @@ struct packet create_deauth_frame(uchar *mac_source, uchar *mac_destination, uch
 
     struct packet result_packet;
     uchar packet_data[MAX_PACKET_LENGTH];
+                                     //Destination           //Source
     char *header =  "\xc0\x00\x3a\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+                    //BSSID                  //SEQ //REASON
                     "\x00\x00\x00\x00\x00\x00\x70\x6a\x01\x00";
 
     memcpy(packet_data, header, 25);
@@ -182,11 +184,12 @@ void print_packet(uchar *h80211, int buffer_size)
 //Type: s => Station
 //      a => Access Point
 //      b => BSSID
+// http://www.aircrack-ng.org/doku.php?id=wds
 uchar *get_macs_from_packet(char type, uchar *packet)
 {
     uchar *bssid, *station, *access_point;
 
-    //Ad-Hoc Case!
+    // Ad-Hoc Case!
     bssid = packet + 16;
     station = packet + 10;
     access_point = packet + 4;
