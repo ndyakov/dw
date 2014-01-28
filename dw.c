@@ -22,6 +22,7 @@ int with_whitelist = 0;
 uchar mac_list[MAX_MAC_LIST_ENTRIES][MAC_LENGTH];           // Whitelist/Blacklist
 int mac_list_length = 0;                                    // Actual mac_list length
 
+int verbose = 0;                                            // Verbose output
 struct packet
 {
     uchar *data;
@@ -134,8 +135,8 @@ void print_packet(uchar *h80211, int buffer_size)
 
 struct packet create_deauth_frame(uchar *mac_destination, uchar *mac_source, uchar *mac_bssid, int disassoc)
 {
-    // Generating deauthenticationor disassociation frame
-
+    // Generating deauthentication or disassociation frame
+    // with unspecified reason.
     struct packet result_packet;
     uchar packet_data[MAX_PACKET_LENGTH];
                                      //Destination           //Source
@@ -156,6 +157,7 @@ struct packet create_deauth_frame(uchar *mac_destination, uchar *mac_source, uch
     result_packet.length = 26;
     result_packet.data = packet_data;
     printf("\n----- create_deauth_frame -----\n");
+    printf("is_disassociation_frame: %d", disassoc);
     printf("mac_destination: ");
     print_mac(mac_destination);
     printf("mac_source: ");
@@ -168,10 +170,8 @@ struct packet create_deauth_frame(uchar *mac_destination, uchar *mac_source, uch
 
 int send_packet(uchar *buf, size_t count)
 {
-    printf("\nsending_packet\n");
-    print_packet(buf, count);
+    printf("\nsending packet...");
     struct wif *wi = _wi_out; /* XXX */
-
     uchar* to_send = malloc(count);
     memcpy(to_send, buf, count);
     if (wi_write(wi, to_send, count, NULL) == -1) {
@@ -191,6 +191,12 @@ int send_packet(uchar *buf, size_t count)
     }
 
     free(to_send);
+    printf("... DONE\n");
+    if (verbose)
+    {
+        printf("The sended packet itself: \n");
+        print_packet(buf, count);
+    }
     return 0;
 }
 
@@ -294,6 +300,7 @@ uchar *parse_mac(const uchar *input)
 
 void set_channel(int channel)
 {
+    printf("Setting channel to %d", channel);
     wi_set_channel(_wi_in, channel);
     current_channel = channel;
 }
@@ -315,7 +322,6 @@ uchar *read_mac_from_file(FILE *file)
     int line_length = 0;
 
     line_length = getline(&line, &allocated, file);
-
     if (line_length == -1)
     {
         return NULL;
@@ -324,22 +330,17 @@ uchar *read_mac_from_file(FILE *file)
     if (line_length > max_length)
     {
         mac = malloc(max_length + 1);
-
         memcpy(mac, line, max_length);
-
         mac[max_length + 1] = '\x00';
-
         length = strlen((const char*) mac);
     }
     else
     {
         mac = malloc(length);
-
         memcpy(mac, line, length);
     }
 
     free(line);
-
     mac[length - 1] = '\x00';
 
     return (uchar *) mac;
@@ -362,9 +363,7 @@ void load_list_file(const char *filename)
     while ((raw_mac = read_mac_from_file(file)))
     {
         mac = parse_mac(raw_mac);
-
         memcpy(mac_list[mac_list_length], mac, MAC_LENGTH);
-
         mac_list_length++;
 
         free(raw_mac);
@@ -406,15 +405,11 @@ uchar *get_target_deauth(uchar *bssid)
 
             packet_length = read_packet(sniffed_packet, MAX_PACKET_LENGTH);
 
-            /*if (to_print) {*/
-                /*print_packet(sniffed_packet, packet_length);*/
-                /*printf("packet_length: %d\n", packet_length);*/
-                /*printf("\n===========================================================\n");*/
-            /*}*/
             if (!memcmp(bssid, get_macs_from_packet('b', sniffed_packet), MAC_LENGTH))
             {
                 break;
             }
+
         } while(packet_length < 22);
 
         // \x08 - Data, \x88 - QoS Data
@@ -446,15 +441,28 @@ void run_deauth(uchar *bssid, int how_many)
         }
         break;
     }
-    printf("\n\n======================================================================\n\n");
-    printf("expected: ");
+    printf("\n\n================[NEW PACKET OF INTEREST CAPTURED]================\n\n");
+    printf("Expected BSSID: ");
     print_mac(bssid);
-    printf("should ban: ");
-    print_mac(mac_list[0]);
-    printf("bssid: ");
+    printf("\n---- Frame ----\n");
+    printf("BSSID: ");
     print_mac(mac_bssid);
     printf("mac_station: ");
     print_mac(mac_station);
+    printf("mac_station is ");
+    if  (with_whitelist)
+    {
+        printf("not in whitelist.");
+    }
+    else
+    {
+        printf("in blacklist.");
+    }
+    if (verbose)
+    {
+        printf("The captured packet itself: \n");
+        print_packet(sniffed_packet_data, MAX_PACKET_LENGTH);
+    }
 
     // dissasoc router -> station
     result_packet = create_deauth_frame(mac_station, mac_bssid, mac_bssid, 1);
@@ -479,18 +487,24 @@ void run_deauth(uchar *bssid, int how_many)
 void print_help()
 {
     printf(
-        "dw <interface> <bssid> [option] \n"
+        "dw <interface> <bssid> [option]        \n"
         "Specify at least on of -w or -b options\n"
-        "Options:\n"
-        " -c <channel>  \n"
-        "   Channel...  \n"
-        " -w <filename> \n"
-        "   Whitelist...\n"
-        " -b <filename> \n"
-        "   Blacklist...\n"
-        " -p <num>      \n"
-        "   How many packets to send \n"
-        "   Default 42.\n"
+        "Options:                               \n"
+        " -c <channel>                          \n"
+        "   Channel - specify this only if you  \n"
+        "    are not currently connected to the \n"
+        "    network.                           \n"
+        " -w <filename>                         \n"
+        "   Whitelist with clients that should  \n"
+        "    NOT be deauthenticated.            \n"
+        " -b <filename>                         \n"
+        "   Blacklist with clients that should  \n"
+        "    deauthenticated.                   \n"
+        " -p <num>                              \n"
+        "   How many packets to send            \n"
+        "   Default 42.                         \n"
+        " -v                                    \n"
+        "   Verbose output. Prints packets.     \n"
     );
 }
 
@@ -555,6 +569,10 @@ int main(int argc, const char *argv[])
             print_help();
             return 0;
         }
+        else if (!strcmp(argv[t], "-v"))
+        {
+            verbose = 1;
+        }
         else
         {
             printf("\nUnknown option %s \n", argv[t]);
@@ -589,17 +607,31 @@ int main(int argc, const char *argv[])
     if (with_whitelist == 1)
     {
         printf("with_whitelist:\n");
-    } else
+    }
+    else
     {
         printf("blacklist:\n");
     }
-
-    int i = 0;
-    for (i = 0; i < mac_list_length; i++)
+    if (verbose)
     {
-        print_mac(mac_list[i]);
+        printf("---- Loaded list ----\n");
+        printf("Type: ");
+        if (with_whitelist)
+        {
+            printf("whitelist.\n");
+        }
+        else
+        {
+            printf("blacklist.\n");
+        }
+        printf("MACs:\n");
+        int i = 0;
+        for (i = 0; i < mac_list_length; i++)
+        {
+            print_mac(mac_list[i]);
+        }
+        printf("---------------------\n");
     }
-
     /* Run Forest, run... */
     while (1)
     {
