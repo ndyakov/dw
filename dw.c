@@ -405,9 +405,9 @@ uchar *get_target_deauth(uchar *bssid)
                     &&
                     (
                         memcmp(bssid, get_macs_from_packet('b', sniffed_packet, &t), MAC_LENGTH)
-                        ||
+                        &&
                         memcmp(bssid, get_macs_from_packet('a', sniffed_packet, &t), MAC_LENGTH)
-                        ||
+                        &&
                         memcmp(bssid, get_macs_from_packet('s', sniffed_packet, &t), MAC_LENGTH)
                     )
                 )
