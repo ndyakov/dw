@@ -27,6 +27,26 @@ struct packet
     int length;
 } packet;
 
+
+int send_packet(uchar *buf, size_t count)
+{
+    struct wif *wi = _wi_out; /* XXX */
+    if (wi_write(wi, buf, count, NULL) == -1) {
+        switch (errno) {
+        case EAGAIN:
+        case ENOBUFS:
+            usleep(10000);
+
+            return 0;
+        }
+        perror("wi_write()");
+
+        return -1;
+    }
+
+    return 0;
+}
+
 int read_packet(uchar *buffer, size_t buffer_size)
 {
     struct wif *wi = _wi_in; /* XXX */
@@ -493,9 +513,9 @@ void print_help()
 int main(int argc, const char *argv[])
 {
     uchar *bssid;
-    int channel = 0, t;
+    int channel = 0, state = 0, t;
     const char *list_file = NULL;
-    //options
+    struct packet packet_to_send;
 
     if (geteuid() != 0)
     {
@@ -553,19 +573,12 @@ int main(int argc, const char *argv[])
     /* drop privileges */
     setuid(getuid());
 
-    uchar packet_data[MAX_PACKET_LENGTH];
-
+    /* Run Forest, run... */
     while (1)
     {
-        read_packet(packet_data, MAX_PACKET_LENGTH);
-        if (!memcmp(bssid, get_macs_from_packet('b', packet_data, &t), MAC_LENGTH) ||
-            !memcmp(bssid, get_macs_from_packet('a', packet_data, &t), MAC_LENGTH) )
-        {
-            print_packet(packet_data, MAX_PACKET_LENGTH);
-        }
-        //printf(get_macs_from_packet('a', packet_data));
-        //printf(get_macs_from_packet('b', packet_data));
-        //printf(get_macs_from_packet('s', packet_data));
+        packet_to_send = get_deauth_packet(&state, bssid);
+        send_packet(packet_to_send.data, packet_to_send.length);
+        /* we shall print some statistics */
     }
 
     free(bssid);
