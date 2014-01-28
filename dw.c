@@ -454,7 +454,7 @@ uchar *get_target_deauth(uchar *bssid)
         } while(1);
 
         // \x08 - Beacon
-        if (!memcmp(sniffed_packet, "\x08", 1))
+        if (!memcmp(sniffed_packet, "\x08", 1) || !memcmp(sniffed_packet, "\x88", 1))
         {
             return sniffed_packet;
         }
