@@ -175,14 +175,14 @@ struct packet create_deauth_frame(uchar *mac_source, uchar *mac_destination, uch
 
     result_packet.length = 26;
     result_packet.data = packet_data;
-    printf("/n----- create_deauth_frame -----/n");
+    printf("\n----- create_deauth_frame -----\n");
     printf("mac_destination: ");
     print_mac(mac_destination);
     printf("mac_source: ");
     print_mac(mac_source);
     printf("mac_bssid: ");
     print_mac(mac_bssid);
-    printf("/n-------------------------------/n");
+    printf("\n-------------------------------\n");
     return result_packet;
 }
 
