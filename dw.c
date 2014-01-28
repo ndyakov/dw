@@ -170,19 +170,26 @@ int send_packet(uchar *buf, size_t count)
     printf("\nsending_packet\n");
     print_packet(buf, count);
     struct wif *wi = _wi_out; /* XXX */
-    if (wi_write(wi, buf, count, NULL) == -1) {
+
+    uchar* to_send = malloc(count);
+    memcpy(to_send, buf, count);
+    if (wi_write(wi, to_send, count, NULL) == -1) {
         switch (errno) {
         case EAGAIN:
         case ENOBUFS:
             usleep(10000);
 
+            free(to_send);
+
             return 0;
         }
         perror("wi_write()");
 
+        free(to_send);
         return -1;
     }
 
+    free(to_send);
     return 0;
 }
 
