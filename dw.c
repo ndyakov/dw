@@ -431,6 +431,7 @@ struct packet get_deauth_packet(int *state, uchar *bssid)
     uchar * mac_access_point = NULL;
     uchar * mac_bssid = NULL;
     uchar * mac_station = NULL;
+    struct packet result_packet;
     switch (*state)
     {
     case 0:
@@ -450,7 +451,7 @@ struct packet get_deauth_packet(int *state, uchar *bssid)
             }
 
             *state = 1;
-            return create_deauth_frame(mac_access_point, mac_station, mac_bssid, 1);
+            result_packet = create_deauth_frame(mac_access_point, mac_station, mac_bssid, 1);
         }
     case 1:
         *state = 2;
@@ -458,24 +459,22 @@ struct packet get_deauth_packet(int *state, uchar *bssid)
         {
             *state = 4;
         }
-        return create_deauth_frame(mac_access_point, mac_station, mac_bssid, 0);
+        result_packet = create_deauth_frame(mac_access_point, mac_station, mac_bssid, 0);
     case 2:
         *state = 3;
-        return create_deauth_frame(mac_station, mac_access_point, mac_bssid, 1);
+        result_packet = create_deauth_frame(mac_station, mac_access_point, mac_bssid, 1);
     case 3:
         *state = 0;
-        return create_deauth_frame(mac_station, mac_access_point, mac_bssid, 0);
+        result_packet = create_deauth_frame(mac_station, mac_access_point, mac_bssid, 0);
     case 4:
         *state = 5;
-        return create_deauth_frame(mac_station, mac_bssid, mac_access_point, 1);
+        result_packet = create_deauth_frame(mac_station, mac_bssid, mac_access_point, 1);
     case 5:
         *state = 0;
-        return create_deauth_frame(mac_station, mac_bssid, mac_access_point, 0);
+        result_packet = create_deauth_frame(mac_station, mac_bssid, mac_access_point, 0);
     }
-
-    // We can never reach this part of code unless somebody messes around with memory
-    // But just to make gcc NOT complain...
-    return create_deauth_frame(mac_station, mac_access_point, mac_bssid, 0);
+    free(sniffed_packet_data);
+    return result_packet;
 }
 void print_help()
 {
