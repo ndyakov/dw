@@ -11,7 +11,8 @@
 #define MAC_LENGTH 6
 #define MAX_MAC_LIST_ENTRIES 256
 #define DEFAULT_HOW_MANY_PACKETS_TO_SEND 42
-
+#define VERSION "0.8"
+#define VERSION_DATE "Jan 2014"
 /* XXX: globals... why? Why, globals... why!? */
 static struct wif *_wi_in, *_wi_out;
 
@@ -490,25 +491,29 @@ void run_deauth(uchar *bssid, int how_many)
 void print_help()
 {
     printf(
-        "dw <interface> <bssid> [option]        \n"
-        "Specify at least on of -w or -b options\n"
-        "Options:                               \n"
-        " -c <channel>                          \n"
-        "   Channel - specify this only if you  \n"
-        "    are not currently connected to the \n"
-        "    network.                           \n"
-        " -w <filename>                         \n"
-        "   Whitelist with clients that should  \n"
-        "    NOT be deauthenticated.            \n"
-        " -b <filename>                         \n"
-        "   Blacklist with clients that should  \n"
-        "    deauthenticated.                   \n"
-        " -p <num>                              \n"
-        "   How many packets to send            \n"
-        "   Default 42.                         \n"
-        " -v                                    \n"
-        "   Verbose output. Prints packets.     \n"
+        "dw " VERSION " Disconnect clients from a Wireless network. \n"
+        "Usage:                                                     \n"
+        "dw <interface> <bssid> <-w|-b> <filename> [options]        \n"
+        "   Specify at least on of -w or -b options                 \n"
+        "Options:                                                   \n"
+        " -w <filena>       Whitelist with clients that should      \n"
+        "                   NOT be deauthenticated.                 \n"
+        " -b <filename>     Blacklist with clients that should      \n"
+        "                   deauthenticated.                        \n"
+        " -c <channel>      Channel - specify this only if you      \n"
+        "                   are not currently connected to the      \n"
+        "                   network.                                \n"
+        " -p <num>          How many packets to send.               \n"
+        "                   Default 42.                             \n"
+        " -v, --verbose     Verbose output.                         \n"
+        " -h, --help        Will print this text and exit.          \n"
+        " -V, --version     Print version and exit.                 \n"
     );
+}
+
+void print_version()
+{
+    printf("dw " VERSION " - " VERSION_DATE "\n");
 }
 
 int main(int argc, const char *argv[])
@@ -523,7 +528,12 @@ int main(int argc, const char *argv[])
         return 1;
     }
 
-    if (argc < 3 || !memcmp(argv[1], "--help", 6) || !memcmp(argv[1], "-h", 2))
+    if (!strcmp(argv[1], "-V") || !strcmp(argv[1], "--version"))
+    {
+        print_version();
+        return 0;
+    }
+    else if (argc < 3 || !memcmp(argv[1], "--help", 6) || !memcmp(argv[1], "-h", 2))
     {
         print_help();
         return 0;
@@ -572,9 +582,14 @@ int main(int argc, const char *argv[])
             print_help();
             return 0;
         }
-        else if (!strcmp(argv[t], "-v"))
+        else if (!strcmp(argv[t], "-v") || !strcmp(argv[t], "--verbose"))
         {
             verbose = 1;
+        }
+        else if (!strcmp(argv[t], "-V") || !strcmp(argv[t], "--version"))
+        {
+            print_version();
+            return 0;
         }
         else
         {
