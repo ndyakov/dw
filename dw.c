@@ -207,11 +207,7 @@ int send_packet(uchar *buf, size_t count)
 
 
 //Returns pointer to the desired MAC Adresses inside a packet
-//Type: s => Station
-//      a => Access Point
-//      b => BSSID
-// http://www.aircrack-ng.org/doku.php?id=wds
-uchar *get_macs_from_packet(char type, uchar *packet)
+uchar *get_mac_from_packet(char type, uchar *packet)
 {
     switch (type)
     {
@@ -413,8 +409,8 @@ uchar *get_target(uchar *bssid)
             packet_length = read_packet(sniffed_packet, MAX_PACKET_LENGTH);
 
             if (packet_length >= 22) {
-                fetched_bssid = get_macs_from_packet(BSSID, sniffed_packet);
-                station_mac = get_macs_from_packet(SOURCE, sniffed_packet);
+                fetched_bssid = get_mac_from_packet(BSSID, sniffed_packet);
+                station_mac = get_mac_from_packet(SOURCE, sniffed_packet);
             }
         } while(
             packet_length < 22 ||
@@ -435,7 +431,7 @@ void run_deauth(uchar *bssid, int how_many)
     int counter = 0;
 
     sniffed_packet_data = get_target(bssid);
-    mac_station = get_macs_from_packet(SOURCE, sniffed_packet_data);
+    mac_station = get_mac_from_packet(SOURCE, sniffed_packet_data);
 
     if (verbose) {
         printf("\n\n================[NEW PACKET OF INTEREST CAPTURED]================\n\n");
