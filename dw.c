@@ -10,6 +10,9 @@
 #define MAX_PACKET_LENGTH 4096
 #define MAC_LENGTH 6
 #define MAX_MAC_LIST_ENTRIES 256
+#define BSSID 'b'
+#define ACCESS_POINT 'a'
+#define STATION 's'
 #define DEFAULT_HOW_MANY_PACKETS_TO_SEND 42
 #define VERSION "0.8"
 #define VERSION_DATE "Jan 2014"
@@ -212,11 +215,11 @@ uchar *get_macs_from_packet(char type, uchar *packet)
 
     switch (type)
     {
-    case 's':
+    case STATION:
         return station;
-    case 'a':
+    case ACCESS_POINT:
         return access_point;
-    case 'b':
+    case BSSID:
         return bssid;
     }
 
@@ -404,7 +407,7 @@ uchar *get_target_deauth(uchar *bssid)
 
         } while(
             packet_length < 22 ||
-            memcmp(bssid, get_macs_from_packet('b', sniffed_packet), MAC_LENGTH)
+            memcmp(bssid, get_macs_from_packet(BSSID, sniffed_packet), MAC_LENGTH)
         );
 
         return sniffed_packet;
@@ -422,8 +425,8 @@ void run_deauth(uchar *bssid, int how_many)
     while(1)
     {
         sniffed_packet_data = get_target_deauth(bssid);
-        mac_station = get_macs_from_packet('s', sniffed_packet_data);
-        mac_bssid = get_macs_from_packet('b', sniffed_packet_data);
+        mac_station = get_macs_from_packet(STATION, sniffed_packet_data);
+        mac_bssid = get_macs_from_packet(BSSID, sniffed_packet_data);
 
         if (
             (with_whitelist == 1 && is_in_list(mac_station)) ||
