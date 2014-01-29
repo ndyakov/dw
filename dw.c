@@ -16,17 +16,14 @@
 #define DEFAULT_HOW_MANY_PACKETS_TO_SEND 42
 #define VERSION "0.8"
 #define VERSION_DATE "Jan 2014"
-/* XXX: globals... why? Why, globals... why!? */
-static struct wif *_wi_in, *_wi_out;
 
+static struct wif *_wif; // wireless interface
 int current_channel = 0;
+int with_whitelist = 0; // using whitelist if 1 or blacklist if 0
+uchar mac_list[MAX_MAC_LIST_ENTRIES][MAC_LENGTH]; // Whitelist/Blacklist
+int mac_list_length = 0;
+int verbose = 0;
 
-int with_whitelist = 0;
-
-uchar mac_list[MAX_MAC_LIST_ENTRIES][MAC_LENGTH];           // Whitelist/Blacklist
-int mac_list_length = 0;                                    // Actual mac_list length
-
-int verbose = 0;                                            // Verbose output
 struct packet
 {
     uchar *data;
@@ -35,10 +32,9 @@ struct packet
 
 int read_packet(uchar *buffer, size_t buffer_size)
 {
-    struct wif *wi = _wi_in; /* XXX */
     int packet_length;
 
-    packet_length = wi_read(wi, buffer, buffer_size, NULL);
+    packet_length = wi_read(_wif, buffer, buffer_size, NULL);
 
     if (packet_length == -1)
     {
@@ -180,12 +176,10 @@ struct packet create_deauth_frame(uchar *mac_destination, uchar *mac_source, uch
 
 int send_packet(uchar *buf, size_t count)
 {
-    struct wif *wi = _wi_out; /* XXX */
-
     uchar* to_send = malloc(count);
     memcpy(to_send, buf, count);
 
-    if (wi_write(wi, to_send, count, NULL) == -1) {
+    if (wi_write(_wif, to_send, count, NULL) == -1) {
         switch (errno) {
         case EAGAIN:
         case ENOBUFS:
@@ -295,9 +289,18 @@ uchar *parse_mac(const uchar *input)
 
 void set_channel(int channel)
 {
-    printf("Setting channel to %d", channel);
-    wi_set_channel(_wi_in, channel);
+    if (verbose)
+    {
+        printf("Setting channel to %d", channel);
+    }
+
+    wi_set_channel(_wif, channel);
     current_channel = channel;
+}
+
+int get_channel()
+{
+    return current_channel;
 }
 
 // Read mac from file
@@ -598,12 +601,9 @@ int main(int argc, const char *argv[])
     }
 
     /* open the replay interface */
-    _wi_out = wi_open((char*) argv[1]);
-    if (!_wi_out)
+    _wif = wi_open((char*) argv[1]);
+    if (!_wif)
         return 1;
-
-    /* open the packet source */
-    _wi_in = _wi_out;
 
     /* drop privileges */
     setuid(getuid());
