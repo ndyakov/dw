@@ -519,7 +519,7 @@ int main(int argc, const char *argv[])
         return 1;
     }
 
-    if (!strcmp(argv[1], "-V") || !strcmp(argv[1], "--version"))
+    if (argc > 1 && (!strcmp(argv[1], "-V") || !strcmp(argv[1], "--version")))
     {
         print_version();
         return 0;
