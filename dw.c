@@ -57,11 +57,13 @@ int read_packet(uchar *buffer, size_t buffer_size)
 
 void print_mac(const uchar* mac) {
     int i;
+
     for (i = 0; i < MAC_LENGTH; i++)
     {
         if (i > 0) printf(":");
         printf("%02X", mac[i]);
     }
+
     printf("\n");
 }
 
@@ -160,15 +162,19 @@ struct packet create_deauth_frame(uchar *mac_destination, uchar *mac_source, uch
 
     result_packet.length = 26;
     result_packet.data = packet_data;
-    printf("\n----- create_deauth_frame -----\n");
-    printf("is_disassociation_frame: %d\n", is_disassociation);
-    printf("mac_bssid: ");
-    print_mac(mac_bssid);
-    printf("mac_source: ");
-    print_mac(mac_source);
-    printf("mac_destination: ");
-    print_mac(mac_destination);
-    printf("-------------------------------\n");
+
+    if (verbose)
+    {
+        printf("\n----- create_deauth_frame -----\n");
+        printf("is_disassociation_frame: %d\n", is_disassociation);
+        printf("destination: ");
+        print_mac(mac_destination);
+        printf("source: ");
+        print_mac(mac_source);
+        printf("bssid: ");
+        print_mac(mac_bssid);
+        printf("-------------------------------\n");
+    }
     return result_packet;
 }
 
@@ -651,28 +657,25 @@ int main(int argc, const char *argv[])
     {
         printf("---- Loaded list ----\n");
         printf("Type: ");
+
         if (with_whitelist)
-        {
             printf("whitelist.\n");
-        }
         else
-        {
             printf("blacklist.\n");
-        }
+
         printf("MACs:\n");
         int i = 0;
         for (i = 0; i < mac_list_length; i++)
         {
             print_mac(mac_list[i]);
         }
+
         printf("---------------------\n");
     }
 
     while (1)
     {
-        printf("IIII am here\n");
         run_deauth(bssid, how_many);
-        printf("I am here\n");
     }
 
     free(bssid);
