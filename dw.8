@@ -1,0 +1,110 @@
+.\" bliof, ndyakov - FMI - 2014
+.\" iwspy.8
+.\"
+.TH dw 8 "January 2014" "Version 0.8" "Manual"
+
+.\"
+.\" NAME part
+.\"
+.SH NAME
+.B dw
+\- Deauthenticate and disassociate wireless clients via blacklist/whitelist.
+
+.\"
+.\" SYNOPSIS part
+.\"
+.SH SYNOPSIS
+.B dw
+<interface> <BSSID> <-w|-b> <filename> [...]
+.br
+
+.\"
+.\" DESCRIPTION part
+.\"
+.SH DESCRIPTION
+.B dw
+is used to disassociate and deauthenticate wireless client from a
+wireless network, where client's mac addresses are compared to a
+whitelist or blacklist file. There should be only mac addresses
+in the whitelist/blacklist file, separated by new lines.
+
+.\"
+.\" REQUIRED PARAMETER part
+.\"
+.SH REQUIRED PARAMETERS
+.TP
+.B interface
+The interface should be in monitor mode.
+.TP
+.B BSSID
+The hardware (MAC) address of the network. In most of the cases
+this address is the same as the MAC address of the access point/ router.
+.TP
+.B -w <filename>
+This file will be used as whitelist. Any clients that are listed in the file
+.B
+won't
+be deauthenticated or disassociated from the network.
+.B
+Anyone
+else will be.
+.TP
+.I OR
+.TP
+.B -b <filename>
+This file will be used as blacklist.
+.B
+Only
+clients listed in this file will be disassociated and deauthenticated from
+the network.
+.B
+Nobody
+else will be.
+
+.\"
+.\" OPTIONS part
+.\"
+.SH OPTIONS
+.TP
+.B -c <channel>
+Specify the network's channel. If you are currently connected to that network
+this option is unnecessary. Also the
+.I
+channel
+should be an integer between 1 and 14.
+.TP
+.B -p <number>
+Specify the number of packets to be send from each type to the client and to
+the router. By default this is 42. The
+.I number
+should be an integer between 2 and 256.
+.TP
+.B -v
+Verbose output. Prints the content of some packets. May be usefull for
+debugging.
+.TP
+.B -h, --help
+Will print short version of this manual.
+
+\"
+.\" FILES part
+.\"
+.SH FILES
+.B /usr/local/sbin/dw
+
+\"
+.\" AUTHORS part
+.\"
+.SH AUTHORS
+This manual page was written by Nedyalko Dyakov <me@ndyakov.eu> and Aleksandar Ivanov <aivanov92@gmail.com> for the Debian system (but may be used by others).
+Permission is granted to copy, distribute and/or modify this document under the terms of the GNU General Public License, Version 2 or any later version published by the Free Software Foundation
+On Debian systems, the complete text of the GNU General Public License can be found in /usr/share/common-licenses/GPL.
+
+.\"
+.\" SEE ALSO part
+.\"
+.SH SEE ALSO
+.BR iwconfig (8),
+.BR airmon-ng (8),
+.BR wireless (7).
+
