@@ -23,6 +23,7 @@ int with_whitelist = 0; // using whitelist if 1 or blacklist if 0
 uchar mac_list[MAX_MAC_LIST_ENTRIES][MAC_LENGTH]; // Whitelist/Blacklist
 int mac_list_length = 0;
 int verbose = 0;
+int silent = 0;
 
 struct packet
 {
@@ -51,7 +52,8 @@ int read_packet(uchar *buffer, size_t buffer_size)
     return packet_length;
 }
 
-void print_mac(const uchar* mac) {
+void print_mac(const uchar* mac)
+{
     int i;
 
     for (i = 0; i < MAC_LENGTH; i++)
@@ -475,6 +477,12 @@ void deauthenticate_station(uchar *bssid, uchar *station, int how_many)
         send_packet(result_packet.data, result_packet.length);
 
     if (verbose) printf("%d packets send\n\n    ", how_many);
+
+    if (!silent)
+    {
+        printf("Attack with %d packets station ", 4 * how_many);
+        print_mac(station);
+    }
 }
 
 void print_help()
@@ -495,6 +503,7 @@ void print_help()
         " -p <num>          How many packets to send.               \n"
         "                   Default 42.                             \n"
         " -v, --verbose     Verbose output.                         \n"
+        " -s, --silent      Silent all output.                      \n"
         " -h, --help        Will print this text and exit.          \n"
         " -V, --version     Print version and exit.                 \n"
     );
@@ -575,6 +584,11 @@ int main(int argc, const char *argv[])
         {
             verbose = 1;
         }
+        else if (!strcmp(argv[t], "-s") || !strcmp(argv[t], "--silent"))
+        {
+            verbose = 0;
+            silent = 1;
+        }
         else if (!strcmp(argv[t], "-V") || !strcmp(argv[t], "--version"))
         {
             print_version();
@@ -599,6 +613,8 @@ int main(int argc, const char *argv[])
         print_help();
         return 1;
     }
+
+    if (verbose) verbose = !silent;
 
     /* open the replay interface */
     _wif = wi_open((char*) argv[1]);
