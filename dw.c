@@ -622,14 +622,6 @@ int main(int argc, const char *argv[])
     /* drop privileges */
     setuid(getuid());
 
-    if (with_whitelist == 1)
-    {
-        printf("with_whitelist:\n");
-    }
-    else
-    {
-        printf("blacklist:\n");
-    }
     if (verbose)
     {
         printf("---- Loaded list ----\n");
