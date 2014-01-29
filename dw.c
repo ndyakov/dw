@@ -10,9 +10,9 @@
 #define MAX_PACKET_LENGTH 4096
 #define MAC_LENGTH 6
 #define MAX_MAC_LIST_ENTRIES 256
+#define DESTINATION 'd'
+#define SOURCE 's'
 #define BSSID 'b'
-#define ACCESS_POINT 'a'
-#define STATION 's'
 #define DEFAULT_HOW_MANY_PACKETS_TO_SEND 42
 #define VERSION "0.8"
 #define VERSION_DATE "Jan 2014"
@@ -213,20 +213,14 @@ int send_packet(uchar *buf, size_t count)
 // http://www.aircrack-ng.org/doku.php?id=wds
 uchar *get_macs_from_packet(char type, uchar *packet)
 {
-    uchar *bssid, *station, *access_point;
-
-    bssid = packet + 16;
-    station = packet + 10;
-    access_point = packet + 4;
-
     switch (type)
     {
-    case STATION:
-        return station;
-    case ACCESS_POINT:
-        return access_point;
+    case DESTINATION:
+        return packet + 4;
+    case SOURCE:
+        return packet + 10;
     case BSSID:
-        return bssid;
+        return packet + 16;
     }
 
     return NULL;
@@ -420,7 +414,7 @@ uchar *get_target(uchar *bssid)
 
             if (packet_length >= 22) {
                 fetched_bssid = get_macs_from_packet(BSSID, sniffed_packet);
-                station_mac = get_macs_from_packet(STATION, sniffed_packet);
+                station_mac = get_macs_from_packet(SOURCE, sniffed_packet);
             }
         } while(
             packet_length < 22 ||
@@ -441,7 +435,7 @@ void run_deauth(uchar *bssid, int how_many)
     int counter = 0;
 
     sniffed_packet_data = get_target(bssid);
-    mac_station = get_macs_from_packet(STATION, sniffed_packet_data);
+    mac_station = get_macs_from_packet(SOURCE, sniffed_packet_data);
 
     if (verbose) {
         printf("\n\n================[NEW PACKET OF INTEREST CAPTURED]================\n\n");
