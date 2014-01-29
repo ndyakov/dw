@@ -300,11 +300,6 @@ void set_channel(int channel)
     current_channel = channel;
 }
 
-int get_channel()
-{
-    return current_channel;
-}
-
 // Read mac from file
 // New line removed
 uchar *read_mac_from_file(FILE *file)
