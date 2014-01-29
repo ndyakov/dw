@@ -436,7 +436,9 @@ void run_deauth(uchar *bssid, int how_many)
         if (
             (with_whitelist == 1 && is_in_list(mac_station)) ||
             (with_whitelist == 0 && !is_in_list(mac_station)) ||
-            !memcmp(mac_station, mac_bssid, MAC_LENGTH)
+            (!memcmp(mac_station, mac_bssid, MAC_LENGTH)) ||
+            (sniffed_packet_data[1] & '\x01') ||                // ToDS
+            (sniffed_packet_data[1] & '\x02')                   // FromDS
         ) {
             continue;
         }
