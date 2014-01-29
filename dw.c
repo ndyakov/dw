@@ -545,7 +545,7 @@ int main(int argc, const char *argv[])
         else if (!strcmp(argv[t], "-c") && argc >= t+1)
         {
             channel = atoi(argv[++t]);
-            if (channel > 0 && channel < 14)
+            if (channel > 0 && channel < 15)
             {
                 set_channel(channel);
             }
@@ -558,9 +558,9 @@ int main(int argc, const char *argv[])
         else if (!strcmp(argv[t], "-p") && argc >= t+1)
         {
             how_many = atoi(argv[++t]);
-            if (how_many < 0 || how_many > 256)
+            if (how_many < 2 || how_many > 256)
             {
-                printf("\nNumber of packets shoul be between 0 and 256.\n");
+                printf("\nNumber of packets shoul be between 2 and 256.\n");
                 how_many = DEFAULT_HOW_MANY_PACKETS_TO_SEND;
             }
         }
