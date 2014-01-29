@@ -402,22 +402,17 @@ uchar *get_target_deauth(uchar *bssid)
     while (1)
     {
         packet_length = 0;
+
         do {
 
             packet_length = read_packet(sniffed_packet, MAX_PACKET_LENGTH);
 
-            if (!memcmp(bssid, get_macs_from_packet('b', sniffed_packet), MAC_LENGTH))
-            {
-                break;
-            }
+        } while(
+            packet_length < 22 ||
+            memcmp(bssid, get_macs_from_packet('b', sniffed_packet), MAC_LENGTH)
+        );
 
-        } while(packet_length < 22);
-
-        // \x08 - Data, \x88 - QoS Data
-        if (!memcmp(sniffed_packet, "\x08", 1) || !memcmp(sniffed_packet, "\x88", 1))
-        {
-            return sniffed_packet;
-        }
+        return sniffed_packet;
     }
 }
 
