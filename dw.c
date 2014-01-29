@@ -485,7 +485,7 @@ void print_help()
         "dw " VERSION " Disconnect clients from a Wireless network. \n"
         "Usage:                                                     \n"
         "dw <interface> <bssid> <-w|-b> <filename> [options]        \n"
-        "   Specify at least on of -w or -b options                 \n"
+        "   Specify at least one of -w or -b options                \n"
         "Options:                                                   \n"
         " -w <filena>       Whitelist with clients that should      \n"
         "                   NOT be deauthenticated.                 \n"
