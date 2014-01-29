@@ -134,7 +134,7 @@ void print_packet(uchar *h80211, int buffer_size)
     printf("\n");
 }
 
-struct packet create_deauth_frame(uchar *mac_destination, uchar *mac_source, uchar *mac_bssid, int disassoc)
+struct packet create_deauth_frame(uchar *mac_destination, uchar *mac_source, uchar *mac_bssid, int is_disassociation)
 {
     // Generating deauthentication or disassociation frame
     // with unspecified reason.
@@ -146,7 +146,7 @@ struct packet create_deauth_frame(uchar *mac_destination, uchar *mac_source, uch
                     "\x00\x00\x00\x00\x00\x00\x70\x6a\x01\x00";
 
     memcpy(packet_data, header, 25);
-    if (disassoc)
+    if (is_disassociation)
     {
         packet_data[0] = '\xa0';
     }
@@ -158,14 +158,14 @@ struct packet create_deauth_frame(uchar *mac_destination, uchar *mac_source, uch
     result_packet.length = 26;
     result_packet.data = packet_data;
     printf("\n----- create_deauth_frame -----\n");
-    printf("is_disassociation_frame: %d", disassoc);
-    printf("mac_destination: ");
-    print_mac(mac_destination);
-    printf("mac_source: ");
-    print_mac(mac_source);
+    printf("is_disassociation_frame: %d\n", is_disassociation);
     printf("mac_bssid: ");
     print_mac(mac_bssid);
-    printf("\n-------------------------------\n");
+    printf("mac_source: ");
+    print_mac(mac_source);
+    printf("mac_destination: ");
+    print_mac(mac_destination);
+    printf("-------------------------------\n");
     return result_packet;
 }
 
