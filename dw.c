@@ -180,7 +180,7 @@ int send_packet(uchar *buf, size_t count)
 {
     uchar* to_send = malloc(count);
     memcpy(to_send, buf, count);
-
+    print_packet(to_send, count);
     if (wi_write(_wif, to_send, count, NULL) == -1) {
         switch (errno) {
         case EAGAIN:
@@ -434,7 +434,7 @@ void deauthenticate_station(uchar *bssid, uchar *station, int how_many)
         print_packet(result_packet.data, result_packet.length);
     }
 
-    for (counter = 0; counter < how_many; counter++)
+    //for (counter = 0; counter < how_many; counter++)
         send_packet(result_packet.data, result_packet.length);
 
     if (verbose) printf("%d packets send\n\n", how_many);
@@ -447,7 +447,7 @@ void deauthenticate_station(uchar *bssid, uchar *station, int how_many)
         print_packet(result_packet.data, result_packet.length);
     }
 
-    for (counter = 0; counter < how_many; counter++)
+    //for (counter = 0; counter < how_many; counter++)
         send_packet(result_packet.data, result_packet.length);
 
     if (verbose) printf("%d packets send\n\n", how_many);
@@ -460,7 +460,7 @@ void deauthenticate_station(uchar *bssid, uchar *station, int how_many)
         print_packet(result_packet.data, result_packet.length);
     }
 
-    for (counter = 0; counter < how_many; counter++)
+    //for (counter = 0; counter < how_many; counter++)
         send_packet(result_packet.data, result_packet.length);
 
     if (verbose) printf("%d packets send\n\n", how_many);
@@ -473,7 +473,7 @@ void deauthenticate_station(uchar *bssid, uchar *station, int how_many)
         print_packet(result_packet.data, result_packet.length);
     }
 
-    for (counter = 0; counter < how_many; counter++)
+    //for (counter = 0; counter < how_many; counter++)
         send_packet(result_packet.data, result_packet.length);
 
     if (verbose) printf("%d packets send\n\n    ", how_many);
@@ -673,6 +673,7 @@ int main(int argc, const char *argv[])
         deauthenticate_station(bssid, station, how_many);
 
         free(target_packet);
+	sleep(5);
     }
 
     free(bssid);
