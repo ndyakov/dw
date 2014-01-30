@@ -179,11 +179,13 @@ int send_packet(uchar *buf, size_t count)
 {
     uchar* to_send = malloc(count);
     memcpy(to_send, buf, count);
-    if (verbose) 
+    if (verbose)
         print_packet(to_send, count);
-    
-    if (wi_write(_wif, to_send, count, NULL) == -1) {
-        switch (errno) {
+
+    if (wi_write(_wif, to_send, count, NULL) == -1)
+    {
+        switch (errno)
+        {
         case EAGAIN:
         case ENOBUFS:
             usleep(10000);
@@ -640,7 +642,8 @@ int main(int argc, const char *argv[])
         uchar *target_packet = get_target(bssid);
         uchar *station = get_mac_from_packet(SOURCE, target_packet);
 
-        if (verbose) {
+        if (verbose)
+        {
             printf("\n\n================[NEW PACKET OF INTEREST CAPTURED]================\n\n");
             printf("Expected BSSID: ");
             print_mac(bssid);
