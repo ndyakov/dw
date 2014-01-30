@@ -1,0 +1,16 @@
+INSTALL
+
+Before trying to compile you need to download the
+aircrack-ng source code. Do this by runing:
+
+    git submodule init
+    git update
+
+Then:
+
+    make
+    sudo make install
+
+should do all the magic.
+You may need to install libnl also, because
+osdep (from aircrack-ng) depends on it.
