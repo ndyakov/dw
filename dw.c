@@ -392,6 +392,11 @@ int is_target_mac(uchar *mac)
     return with_whitelist ? !is_in_list(mac) : is_in_list(mac);
 }
 
+int is_deauth_packet(uchar *packet_data)
+{
+    return !memcmp(packet_data, "\xc0", 1) || !memcmp(packet_data, "\xa0", 1);
+}
+
 /* Sniffing Functions */
 uchar *get_target(uchar *bssid)
 {
@@ -416,7 +421,8 @@ uchar *get_target(uchar *bssid)
             packet_length < 22 ||
             memcmp(bssid, fetched_bssid, MAC_LENGTH) ||
             !memcmp(source, fetched_bssid, MAC_LENGTH) ||
-            !is_target_mac(source)
+            !is_target_mac(source) ||
+            is_deauth_packet(sniffed_packet_data)
         );
 
         return sniffed_packet_data;
@@ -673,7 +679,7 @@ int main(int argc, const char *argv[])
         deauthenticate_station(bssid, station, how_many);
 
         free(target_packet);
-	sleep(5);
+        usleep(5000);
     }
 
     free(bssid);
