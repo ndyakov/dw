@@ -22,7 +22,7 @@ GPLv2
 
 ## AUTHORS
 
-Written by Nedyalko Dyakov <me@ndyakov.eu> and Aleksandar Ivanov <aivanov92@gmail.com>,
+Written by [Nedyalko Dyakov](https://github.com/ndyakov) and [Aleksandar Ivanov](https://github.com/bliof).
 
 with code taken from:
 * Using 'osdep' Library from www.aircrack-ng.org project for frame injection
